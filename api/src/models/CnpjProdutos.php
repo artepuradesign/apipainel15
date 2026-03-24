@@ -20,8 +20,10 @@ class CnpjProdutos extends BaseModel {
         }
 
         if ($search) {
-            $where[] = '(p.nome_produto LIKE ? OR p.nome_empresa LIKE ? OR p.sku LIKE ? OR p.categoria LIKE ? OR p.codigo_barras LIKE ?)';
+            $where[] = '(p.nome_produto LIKE ? OR p.nome_empresa LIKE ? OR p.sku LIKE ? OR p.categoria LIKE ? OR p.marca LIKE ? OR p.tags LIKE ? OR p.codigo_barras LIKE ?)';
             $searchLike = '%' . $search . '%';
+            $params[] = $searchLike;
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -65,8 +67,10 @@ class CnpjProdutos extends BaseModel {
         }
 
         if ($search) {
-            $where[] = '(nome_produto LIKE ? OR nome_empresa LIKE ? OR sku LIKE ? OR categoria LIKE ? OR codigo_barras LIKE ?)';
+            $where[] = '(nome_produto LIKE ? OR nome_empresa LIKE ? OR sku LIKE ? OR categoria LIKE ? OR marca LIKE ? OR tags LIKE ? OR codigo_barras LIKE ?)';
             $searchLike = '%' . $search . '%';
+            $params[] = $searchLike;
+            $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
             $params[] = $searchLike;
@@ -117,8 +121,8 @@ class CnpjProdutos extends BaseModel {
 
     public function createProduto(array $data, int $userId): int {
         $query = "INSERT INTO {$this->table}
-            (module_id, user_id, cnpj, nome_empresa, nome_produto, sku, categoria, codigo_barras, controlar_estoque, fotos_json, preco, estoque, status, ativo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+            (module_id, user_id, cnpj, nome_empresa, nome_produto, sku, categoria, categoria_id, tags, marca, marca_id, external_featured_image_url, codigo_barras, controlar_estoque, fotos_json, preco, estoque, status, ativo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
 
         $stmt = $this->db->prepare($query);
         $stmt->execute([
@@ -129,6 +133,11 @@ class CnpjProdutos extends BaseModel {
             $data['nome_produto'],
             $data['sku'] ?? null,
             $data['categoria'] ?? null,
+            $data['categoria_id'] ?? null,
+            $data['tags'] ?? null,
+            $data['marca'] ?? null,
+            $data['marca_id'] ?? null,
+            $data['external_featured_image_url'] ?? null,
             $data['codigo_barras'] ?? null,
             (int)($data['controlar_estoque'] ?? 0),
             $data['fotos_json'] ?? null,
@@ -144,7 +153,7 @@ class CnpjProdutos extends BaseModel {
         $sets = [];
         $params = [];
 
-        $allowedFields = ['cnpj', 'nome_empresa', 'nome_produto', 'sku', 'categoria', 'codigo_barras', 'controlar_estoque', 'fotos_json', 'preco', 'estoque', 'status'];
+        $allowedFields = ['cnpj', 'nome_empresa', 'nome_produto', 'sku', 'categoria', 'categoria_id', 'tags', 'marca', 'marca_id', 'external_featured_image_url', 'codigo_barras', 'controlar_estoque', 'fotos_json', 'preco', 'estoque', 'status'];
 
         foreach ($allowedFields as $field) {
             if (array_key_exists($field, $fields)) {
