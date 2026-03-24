@@ -57,15 +57,15 @@ export default function ProductPhotoUploader({ photos, uploading, onUpload, onRe
   };
 
   return (
-    <div className="space-y-3 max-w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 justify-items-start">
+    <div className="space-y-3 w-full">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
       {SLOT_HINTS.slice(0, visibleSlots).map((hint, index) => {
         const remotePhotoUrl = photos[index] || '';
         const photoUrl = localPreviews[index] || remotePhotoUrl;
         const showImage = photoUrl.trim().length > 0 && !previewErrorSlots[index];
 
         return (
-          <div key={`photo-slot-${index}`} className="rounded-lg border bg-card p-2.5 space-y-2 min-w-0 w-full max-w-[156px]">
+          <div key={`photo-slot-${index}`} className="rounded-lg border bg-card p-2.5 space-y-2 min-w-0 w-full">
             <input
               id={`foto-slot-${index}`}
               type="file"
