@@ -128,14 +128,63 @@ CREATE TABLE IF NOT EXISTS cnpj_produto_tags (
 -- 3) Patch para bases já existentes (executar uma vez)
 -- =========================================================
 
-ALTER TABLE cnpj_produtos ADD COLUMN IF NOT EXISTS categoria_id BIGINT UNSIGNED NULL AFTER categoria;
-ALTER TABLE cnpj_produtos ADD COLUMN IF NOT EXISTS tags VARCHAR(500) NULL AFTER categoria_id;
-ALTER TABLE cnpj_produtos ADD COLUMN IF NOT EXISTS marca VARCHAR(120) NULL AFTER tags;
-ALTER TABLE cnpj_produtos ADD COLUMN IF NOT EXISTS marca_id BIGINT UNSIGNED NULL AFTER marca;
-ALTER TABLE cnpj_produtos ADD COLUMN IF NOT EXISTS external_featured_image_url VARCHAR(2048) NULL AFTER marca_id;
+SET @db_name := DATABASE();
 
-CREATE INDEX idx_cnpj_produtos_categoria_id ON cnpj_produtos (categoria_id);
-CREATE INDEX idx_cnpj_produtos_marca_id ON cnpj_produtos (marca_id);
+SELECT COUNT(*) INTO @col_categoria_id
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND COLUMN_NAME = 'categoria_id';
+SET @sql := IF(@col_categoria_id = 0,
+  'ALTER TABLE cnpj_produtos ADD COLUMN categoria_id BIGINT UNSIGNED NULL AFTER categoria',
+  'SELECT "Coluna categoria_id já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT COUNT(*) INTO @col_tags
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND COLUMN_NAME = 'tags';
+SET @sql := IF(@col_tags = 0,
+  'ALTER TABLE cnpj_produtos ADD COLUMN tags VARCHAR(500) NULL AFTER categoria_id',
+  'SELECT "Coluna tags já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT COUNT(*) INTO @col_marca
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND COLUMN_NAME = 'marca';
+SET @sql := IF(@col_marca = 0,
+  'ALTER TABLE cnpj_produtos ADD COLUMN marca VARCHAR(120) NULL AFTER tags',
+  'SELECT "Coluna marca já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT COUNT(*) INTO @col_marca_id
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND COLUMN_NAME = 'marca_id';
+SET @sql := IF(@col_marca_id = 0,
+  'ALTER TABLE cnpj_produtos ADD COLUMN marca_id BIGINT UNSIGNED NULL AFTER marca',
+  'SELECT "Coluna marca_id já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT COUNT(*) INTO @col_external_img
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND COLUMN_NAME = 'external_featured_image_url';
+SET @sql := IF(@col_external_img = 0,
+  'ALTER TABLE cnpj_produtos ADD COLUMN external_featured_image_url VARCHAR(2048) NULL AFTER marca_id',
+  'SELECT "Coluna external_featured_image_url já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT COUNT(*) INTO @idx_categoria_id
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND INDEX_NAME = 'idx_cnpj_produtos_categoria_id';
+SET @sql := IF(@idx_categoria_id = 0,
+  'CREATE INDEX idx_cnpj_produtos_categoria_id ON cnpj_produtos (categoria_id)',
+  'SELECT "Índice idx_cnpj_produtos_categoria_id já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT COUNT(*) INTO @idx_marca_id
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'cnpj_produtos' AND INDEX_NAME = 'idx_cnpj_produtos_marca_id';
+SET @sql := IF(@idx_marca_id = 0,
+  'CREATE INDEX idx_cnpj_produtos_marca_id ON cnpj_produtos (marca_id)',
+  'SELECT "Índice idx_cnpj_produtos_marca_id já existe"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- =========================================================
 -- 4) Seed opcional para uso imediato no painel
