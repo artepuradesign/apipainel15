@@ -7,9 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import BarcodeScanner from '@/components/cnpj-produtos/BarcodeScanner';
@@ -249,9 +247,6 @@ const CnpjProdutos = () => {
   const [scannerTarget, setScannerTarget] = useState<'form' | 'search'>('form');
   const [editing, setEditing] = useState<CnpjProduto | null>(null);
   const [saving, setSaving] = useState(false);
-  const [aiDescriptionPrompt, setAiDescriptionPrompt] = useState('');
-  const [aiContentLength, setAiContentLength] = useState<'curto' | 'medio' | 'longo'>('medio');
-  const [aiTone, setAiTone] = useState<'neutro' | 'formal' | 'confiavel' | 'amigavel' | 'divertido'>('neutro');
   const [catalogVisibility, setCatalogVisibility] = useState<'loja_busca' | 'somente_loja' | 'somente_busca' | 'oculto'>('loja_busca');
   const [tagsProduto, setTagsProduto] = useState('');
   const [marcaProduto, setMarcaProduto] = useState('');
@@ -607,35 +602,6 @@ const CnpjProdutos = () => {
 
             <ProductDataPanel />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="preco">Preço (R$)</Label>
-                <Input id="preco" type="number" step="0.01" min={0} value={formData.preco} onChange={(e) => setFormData((prev) => ({ ...prev, preco: Number(e.target.value) }))} />
-              </div>
-            </div>
-
-            <div className="rounded-md border p-3 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-medium">Controlar estoque</p>
-                  <p className="text-xs text-muted-foreground">Habilite para informar a quantidade disponível.</p>
-                </div>
-                <Switch
-                  checked={formData.controlar_estoque}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, controlar_estoque: checked, estoque: checked ? prev.estoque : 0 }))}
-                />
-              </div>
-
-              {formData.controlar_estoque ? (
-                <div className="space-y-1.5 max-w-[220px]">
-                  <Label htmlFor="estoque">Quantidade em estoque</Label>
-                  <Input id="estoque" type="number" min={0} value={formData.estoque} onChange={(e) => setFormData((prev) => ({ ...prev, estoque: Number(e.target.value) }))} />
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Estoque desativado para este produto.</p>
-              )}
-            </div>
-
             <div className="flex items-end gap-2">
               <Button onClick={handleSave} disabled={saving || uploadingPhotos} className="w-full md:w-auto">
                 {uploadingPhotos
@@ -656,62 +622,6 @@ const CnpjProdutos = () => {
         </Card>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Criar produtos com IA</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="ia-descricao">Descreva seu produto em algumas palavras</Label>
-                <Textarea
-                  id="ia-descricao"
-                  value={aiDescriptionPrompt}
-                  onChange={(e) => setAiDescriptionPrompt(e.target.value)}
-                  placeholder="Ex: Suco natural de uva integral sem açúcar"
-                  className="min-h-[84px]"
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Tamanho do conteúdo</Label>
-                  <Select value={aiContentLength} onValueChange={(value: 'curto' | 'medio' | 'longo') => setAiContentLength(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="curto">Curto</SelectItem>
-                      <SelectItem value="medio">Médio</SelectItem>
-                      <SelectItem value="longo">Longo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Tom de voz</Label>
-                  <Select value={aiTone} onValueChange={(value: 'neutro' | 'formal' | 'confiavel' | 'amigavel' | 'divertido') => setAiTone(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="neutro">Neutro</SelectItem>
-                      <SelectItem value="formal">Formal</SelectItem>
-                      <SelectItem value="confiavel">Confiável</SelectItem>
-                      <SelectItem value="amigavel">Amigável</SelectItem>
-                      <SelectItem value="divertido">Divertido</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => toast.info('Geração com IA será conectada em seguida')}
-                disabled={!aiDescriptionPrompt.trim()}
-              >
-                Criar produto com IA
-              </Button>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Publicar</CardTitle>
@@ -782,6 +692,7 @@ const CnpjProdutos = () => {
                 <Label htmlFor="fotos">Fotos do produto (até 5)</Label>
                 <span className="text-xs text-muted-foreground">{selectedPhotosCount}/5</span>
               </div>
+              <p className="text-xs text-muted-foreground">A primeira imagem enviada será usada como imagem principal do produto.</p>
               <ProductPhotoUploader
                 key={editing ? `produto-fotos-${editing.id}` : 'produto-fotos-novo'}
                 photos={productPhotos}
