@@ -115,7 +115,7 @@ const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '',
     });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_button]:text-sm">
       <div className="flex items-center gap-4 border-b border-border pb-2">
         <button type="button" onClick={() => setTab('all')} className={`text-sm ${tab === 'all' ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
           Todas as marcas

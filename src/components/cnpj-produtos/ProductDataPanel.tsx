@@ -43,9 +43,9 @@ export default function ProductDataPanel() {
   ]);
 
   return (
-    <div className="rounded-md border border-input bg-card">
+    <div className="rounded-md border border-input bg-card [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_textarea]:text-sm [&_select]:text-sm [&_legend]:text-[13px] sm:[&_legend]:text-sm">
       <div className="border-b border-border px-4 py-3 space-y-3">
-        <Label className="text-sm font-semibold">Dados do produto</Label>
+        <Label className="text-sm font-semibold tracking-tight">Dados do produto</Label>
 
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-end">
           <div className="space-y-1.5">
@@ -94,7 +94,7 @@ export default function ProductDataPanel() {
               variant="ghost"
               size="sm"
               onClick={() => setActiveTab(tab.id)}
-              className={cn('h-8 text-xs', activeTab === tab.id && 'bg-muted text-foreground')}
+              className={cn('h-8 text-[13px] sm:text-sm', activeTab === tab.id && 'bg-muted text-foreground')}
             >
               {tab.label}
             </Button>

@@ -78,7 +78,7 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', onC
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_textarea]:text-sm [&_button]:text-sm">
       <div className="space-y-1.5">
         <Label htmlFor="tax-input-product_tag">Adicionar ou remover tags</Label>
         <Textarea
