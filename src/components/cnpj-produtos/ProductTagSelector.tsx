@@ -26,6 +26,7 @@ const POPULAR_TAGS: PopularTag[] = [
 
 interface ProductTagSelectorProps {
   value?: string;
+  suggestedTags?: string[];
   onChange: (value: string) => void;
 }
 
@@ -37,7 +38,7 @@ const normalizeTags = (raw: string) =>
 
 const uniqueTags = (tags: string[]) => Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)));
 
-const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', onChange }) => {
+const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', suggestedTags = [], onChange }) => {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [showTagCloud, setShowTagCloud] = useState(false);
@@ -47,6 +48,21 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', onC
   }, [value]);
 
   const joinedTags = useMemo(() => tags.join(', '), [tags]);
+  const cloudTags = useMemo(() => {
+    const base = new Map(POPULAR_TAGS.map((item) => [item.name.toLowerCase(), item]));
+
+    suggestedTags
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((name) => {
+        const key = name.toLowerCase();
+        if (!base.has(key)) {
+          base.set(key, { name, size: 'md' });
+        }
+      });
+
+    return Array.from(base.values());
+  }, [suggestedTags]);
 
   const syncTags = (next: string[]) => {
     const normalized = uniqueTags(next);
@@ -127,7 +143,7 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', onC
 
         {showTagCloud && (
           <ul className="mt-2 flex flex-wrap gap-2 rounded-md border border-border p-3" role="list" aria-label="Nuvem de tags populares">
-            {POPULAR_TAGS.map((tag) => (
+            {cloudTags.map((tag) => (
               <li key={tag.name}>
                 <button
                   type="button"
