@@ -317,6 +317,9 @@ const CnpjProdutos = () => {
       nome_empresa: userEmpresa,
       fotos: [],
     });
+    setTagsProduto('');
+    setMarcaProduto('');
+    setExternalFeaturedImageUrl('');
     setDescricaoProdutoHtml('');
     setProductPhotos(toPhotoSlots());
     setPendingPhotoFiles(createEmptyFileSlots());
@@ -414,6 +417,9 @@ const CnpjProdutos = () => {
         const result = await cnpjProdutosService.atualizar({
           id: editing.id,
           ...parsed.data,
+          tags: tagsProduto,
+          marca: marcaProduto,
+          external_featured_image_url: externalFeaturedImageUrl,
         });
 
         if (!result.success) {
@@ -430,6 +436,9 @@ const CnpjProdutos = () => {
           nome_produto: parsed.data.nome_produto,
           sku: parsed.data.sku,
           categoria: parsed.data.categoria,
+          tags: tagsProduto,
+          marca: marcaProduto,
+          external_featured_image_url: externalFeaturedImageUrl,
           codigo_barras: parsed.data.codigo_barras,
           controlar_estoque: parsed.data.controlar_estoque,
           fotos: parsed.data.fotos,
@@ -482,6 +491,9 @@ const CnpjProdutos = () => {
     setDescricaoProdutoHtml(existingDescription);
     setProductPhotos(toPhotoSlots(normalizedPhotos));
     setPendingPhotoFiles(createEmptyFileSlots());
+    setTagsProduto((produto.tags || '').toString());
+    setMarcaProduto((produto.marca || '').toString());
+    setExternalFeaturedImageUrl((produto.external_featured_image_url || '').toString());
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -581,14 +593,10 @@ const CnpjProdutos = () => {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="produto">Produto *</Label>
                 <Input id="produto" value={formData.nome_produto} onChange={(e) => setFormData((prev) => ({ ...prev, nome_produto: e.target.value }))} placeholder="Nome do produto" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sku">SKU</Label>
-                <Input id="sku" value={formData.sku || ''} onChange={(e) => setFormData((prev) => ({ ...prev, sku: e.target.value }))} placeholder="Código interno" />
               </div>
             </div>
 

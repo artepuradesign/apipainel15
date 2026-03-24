@@ -12,6 +12,11 @@ export interface CnpjProduto {
   nome_produto: string;
   sku: string | null;
   categoria: string | null;
+  categoria_id?: number | null;
+  tags?: string | null;
+  marca?: string | null;
+  marca_id?: number | null;
+  external_featured_image_url?: string | null;
   codigo_barras?: string | null;
   controlar_estoque?: boolean | number;
   fotos?: string[];
@@ -82,6 +87,11 @@ export const cnpjProdutosService = {
     nome_produto: string;
     sku?: string;
     categoria?: string;
+    categoria_id?: number;
+    tags?: string;
+    marca?: string;
+    marca_id?: number;
+    external_featured_image_url?: string;
     codigo_barras?: string;
     controlar_estoque?: boolean;
     fotos?: string[];
@@ -102,6 +112,11 @@ export const cnpjProdutosService = {
     nome_produto?: string;
     sku?: string;
     categoria?: string;
+    categoria_id?: number;
+    tags?: string;
+    marca?: string;
+    marca_id?: number;
+    external_featured_image_url?: string;
     codigo_barras?: string;
     controlar_estoque?: boolean;
     fotos?: string[];

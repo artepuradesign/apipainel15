@@ -300,6 +300,40 @@ class CnpjProdutosController {
             $result['categoria'] = $categoria === '' ? null : mb_substr($categoria, 0, 120);
         }
 
+        if (array_key_exists('categoria_id', $input)) {
+            $categoriaId = (int)$input['categoria_id'];
+            $result['categoria_id'] = $categoriaId > 0 ? $categoriaId : null;
+        }
+
+        if (array_key_exists('tags', $input)) {
+            $tags = trim((string)$input['tags']);
+            if ($tags !== '') {
+                $tagList = array_values(array_unique(array_filter(array_map(function ($item) {
+                    return mb_substr(trim((string)$item), 0, 60);
+                }, explode(',', $tags)))));
+                $tags = implode(', ', $tagList);
+            }
+            $result['tags'] = $tags === '' ? null : mb_substr($tags, 0, 500);
+        }
+
+        if (array_key_exists('marca', $input)) {
+            $marca = trim((string)$input['marca']);
+            $result['marca'] = $marca === '' ? null : mb_substr($marca, 0, 120);
+        }
+
+        if (array_key_exists('marca_id', $input)) {
+            $marcaId = (int)$input['marca_id'];
+            $result['marca_id'] = $marcaId > 0 ? $marcaId : null;
+        }
+
+        if (array_key_exists('external_featured_image_url', $input)) {
+            $externalFeaturedImageUrl = trim((string)$input['external_featured_image_url']);
+            if ($externalFeaturedImageUrl !== '' && (!filter_var($externalFeaturedImageUrl, FILTER_VALIDATE_URL) || mb_strlen($externalFeaturedImageUrl) > 2048)) {
+                throw new InvalidArgumentException('external_featured_image_url inválida');
+            }
+            $result['external_featured_image_url'] = $externalFeaturedImageUrl === '' ? null : $externalFeaturedImageUrl;
+        }
+
         $controlarEstoque = null;
         if (array_key_exists('controlar_estoque', $input)) {
             $rawControlar = $input['controlar_estoque'];
@@ -413,6 +447,10 @@ class CnpjProdutosController {
 
     private function normalizeProdutoRow(array $row): array {
         $row['codigo_barras'] = !empty($row['codigo_barras']) ? (string)$row['codigo_barras'] : null;
+        $row['categoria'] = !empty($row['categoria']) ? (string)$row['categoria'] : null;
+        $row['tags'] = !empty($row['tags']) ? (string)$row['tags'] : null;
+        $row['marca'] = !empty($row['marca']) ? (string)$row['marca'] : null;
+        $row['external_featured_image_url'] = !empty($row['external_featured_image_url']) ? (string)$row['external_featured_image_url'] : null;
         $row['controlar_estoque'] = ((int)($row['controlar_estoque'] ?? 0)) === 1;
 
         $fotos = [];
