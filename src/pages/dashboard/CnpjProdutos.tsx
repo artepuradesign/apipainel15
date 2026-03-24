@@ -1019,6 +1019,7 @@ const CnpjProdutos = () => {
           </DialogHeader>
 
           <BarcodeScanner
+            enabled={scannerOpen}
             onDetected={(value) => {
               if (scannerTarget === 'search') {
                 setSearch(value);
