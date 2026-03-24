@@ -39,6 +39,7 @@ class CnpjProdutosController {
             $rows = $this->model->listProdutos($userId, $isAdmin, $limit, $offset, $search, $status, $cnpj);
             $rows = array_map([$this, 'normalizeProdutoRow'], $rows);
             $total = $this->model->countProdutos($userId, $isAdmin, $search, $status, $cnpj);
+            $sections = $this->model->getSectionNames($userId, $isAdmin);
 
             Response::success([
                 'data' => $rows,
@@ -47,6 +48,7 @@ class CnpjProdutosController {
                     'limit' => $limit,
                     'offset' => $offset,
                 ],
+                'sections' => $sections,
             ], 'Produtos carregados com sucesso');
         } catch (Exception $e) {
             Response::error('Erro ao listar produtos: ' . $e->getMessage(), 500);

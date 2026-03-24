@@ -39,10 +39,38 @@ const addBrandToTree = (nodes: BrandNode[], parentId: number, newNode: BrandNode
 
 interface ProductBrandSelectorProps {
   value?: string;
+  options?: string[];
   onChange: (value: string) => void;
 }
 
-const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '', onChange }) => {
+const normalizeBrandOptions = (options: string[]) =>
+  Array.from(new Set(options.map((item) => item.trim()).filter(Boolean)));
+
+const createSyntheticBrandId = (label: string, offset = 0) =>
+  Math.abs(
+    label
+      .trim()
+      .toLowerCase()
+      .split('')
+      .reduce((acc, char) => acc * 33 + char.charCodeAt(0), 23)
+  ) + 200000 + offset;
+
+const mergeBrandOptions = (nodes: BrandNode[], options: string[]): BrandNode[] => {
+  const existing = new Set(flattenBrands(nodes).map((item) => item.label.toLowerCase()));
+  const missing = normalizeBrandOptions(options).filter((label) => !existing.has(label.toLowerCase()));
+
+  if (missing.length === 0) return nodes;
+
+  const appended = missing.map((label, index) => ({
+    id: createSyntheticBrandId(label, index),
+    label,
+    popular: index < 10,
+  }));
+
+  return [...nodes, ...appended];
+};
+
+const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '', options = [], onChange }) => {
   const [tab, setTab] = useState<'all' | 'popular'>('all');
   const [showAdder, setShowAdder] = useState(false);
   const [brandTree, setBrandTree] = useState<BrandNode[]>(DEFAULT_BRANDS);
@@ -52,6 +80,11 @@ const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '',
 
   const flattened = useMemo(() => flattenBrands(brandTree), [brandTree]);
   const idToLabel = useMemo(() => new Map(flattened.map((item) => [item.id, item.label])), [flattened]);
+
+  useEffect(() => {
+    if (!options.length) return;
+    setBrandTree((prev) => mergeBrandOptions(prev, options));
+  }, [options]);
 
   useEffect(() => {
     if (!value?.trim()) return;

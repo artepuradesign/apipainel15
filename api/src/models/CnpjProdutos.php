@@ -177,4 +177,109 @@ class CnpjProdutos extends BaseModel {
         $stmt = $this->db->prepare($query);
         return $stmt->execute([$id]);
     }
+
+    public function getSectionNames(int $userId, bool $isAdmin): array {
+        $sections = [
+            'categories' => [],
+            'brands' => [],
+            'tags' => [],
+        ];
+
+        if ($this->tableExists('cnpj_product_categories')) {
+            $sections['categories'] = $this->querySectionNamesFromTaxonomy('cnpj_product_categories', $userId, $isAdmin);
+        }
+
+        if ($this->tableExists('cnpj_product_brands')) {
+            $sections['brands'] = $this->querySectionNamesFromTaxonomy('cnpj_product_brands', $userId, $isAdmin);
+        }
+
+        if ($this->tableExists('cnpj_product_tags')) {
+            $sections['tags'] = $this->querySectionNamesFromTaxonomy('cnpj_product_tags', $userId, $isAdmin, 80);
+        }
+
+        if (empty($sections['categories'])) {
+            $sections['categories'] = $this->queryDistinctProdutoValues('categoria', $userId, $isAdmin, 120);
+        }
+
+        if (empty($sections['brands'])) {
+            $sections['brands'] = $this->queryDistinctProdutoValues('marca', $userId, $isAdmin, 120);
+        }
+
+        if (empty($sections['tags'])) {
+            $rawTags = $this->queryDistinctProdutoValues('tags', $userId, $isAdmin, 500);
+            $parsedTags = [];
+
+            foreach ($rawTags as $tagLine) {
+                foreach (explode(',', $tagLine) as $tagItem) {
+                    $trimmed = mb_substr(trim((string)$tagItem), 0, 80);
+                    if ($trimmed !== '') {
+                        $parsedTags[] = $trimmed;
+                    }
+                }
+            }
+
+            $sections['tags'] = $this->normalizeSectionValues($parsedTags);
+        }
+
+        return $sections;
+    }
+
+    private function querySectionNamesFromTaxonomy(string $table, int $userId, bool $isAdmin, int $maxLength = 120): array {
+        $query = "SELECT nome FROM {$table} WHERE ativo = 1 AND module_id = 183";
+        $params = [];
+
+        if (!$isAdmin) {
+            $query .= ' AND (user_id IS NULL OR user_id = ?)';
+            $params[] = $userId;
+        }
+
+        $query .= ' ORDER BY nome ASC LIMIT 200';
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        return $this->normalizeSectionValues($rows, $maxLength);
+    }
+
+    private function queryDistinctProdutoValues(string $column, int $userId, bool $isAdmin, int $maxLength): array {
+        $query = "SELECT DISTINCT {$column} FROM {$this->table} WHERE ativo = 1 AND {$column} IS NOT NULL AND {$column} <> ''";
+        $params = [];
+
+        if (!$isAdmin) {
+            $query .= ' AND user_id = ?';
+            $params[] = $userId;
+        }
+
+        $query .= " ORDER BY {$column} ASC LIMIT 300";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        return $this->normalizeSectionValues($rows, $maxLength);
+    }
+
+    private function normalizeSectionValues(array $values, int $maxLength = 120): array {
+        $normalized = [];
+
+        foreach ($values as $value) {
+            $label = mb_substr(trim((string)$value), 0, $maxLength);
+            if ($label === '') {
+                continue;
+            }
+
+            $key = mb_strtolower($label);
+            $normalized[$key] = $label;
+        }
+
+        ksort($normalized);
+        return array_values($normalized);
+    }
+
+    private function tableExists(string $tableName): bool {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
+        $stmt->execute([$tableName]);
+        return ((int)$stmt->fetchColumn()) > 0;
+    }
 }

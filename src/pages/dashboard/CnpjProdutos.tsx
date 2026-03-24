@@ -19,7 +19,7 @@ import ProductTagSelector from '@/components/cnpj-produtos/ProductTagSelector';
 import ProductBrandSelector from '@/components/cnpj-produtos/ProductBrandSelector';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { cnpjProdutosService, type CnpjProduto, type ProdutoStatus } from '@/services/cnpjProdutosService';
+import { cnpjProdutosService, type CnpjProduto, type CnpjProdutoSections, type ProdutoStatus } from '@/services/cnpjProdutosService';
 
 const MODULE_ID = 183;
 
@@ -229,6 +229,35 @@ const toPhotoStorageValue = (value: string) => {
   return extracted.replace(/^\/+/, '').trim();
 };
 
+const emptySections: CnpjProdutoSections = {
+  categories: [],
+  brands: [],
+  tags: [],
+};
+
+const normalizeSectionValues = (values: unknown): string[] => {
+  if (!Array.isArray(values)) return [];
+
+  return Array.from(
+    new Set(
+      values
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+    )
+  );
+};
+
+const normalizeSections = (sections: unknown): CnpjProdutoSections => {
+  if (!sections || typeof sections !== 'object') return emptySections;
+
+  const obj = sections as Partial<CnpjProdutoSections>;
+  return {
+    categories: normalizeSectionValues(obj.categories),
+    brands: normalizeSectionValues(obj.brands),
+    tags: normalizeSectionValues(obj.tags),
+  };
+};
+
 const CnpjProdutos = () => {
   const { profile, user } = useAuth();
   const isAdmin = profile?.user_role === 'admin' || profile?.user_role === 'suporte';
@@ -251,6 +280,7 @@ const CnpjProdutos = () => {
   const [tagsProduto, setTagsProduto] = useState('');
   const [marcaProduto, setMarcaProduto] = useState('');
   const [externalFeaturedImageUrl, setExternalFeaturedImageUrl] = useState('');
+  const [sectionOptions, setSectionOptions] = useState<CnpjProdutoSections>(emptySections);
 
   const [deleteTarget, setDeleteTarget] = useState<CnpjProduto | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -285,12 +315,15 @@ const CnpjProdutos = () => {
           fotos: normalizeProductPhotos(produto.fotos, produto.fotos_json),
         }));
         setProdutos(normalizedProducts);
+        setSectionOptions(normalizeSections(result.data.sections));
       } else {
         setProdutos([]);
+        setSectionOptions(emptySections);
         if (result.error) toast.error(result.error);
       }
     } catch {
       setProdutos([]);
+      setSectionOptions(emptySections);
       toast.error('Erro ao carregar produtos');
     } finally {
       setLoading(false);
@@ -728,6 +761,7 @@ const CnpjProdutos = () => {
             <CardContent>
               <ProductCategorySelector
                 value={formData.categoria || ''}
+                options={sectionOptions.categories}
                 onChange={(category) => setFormData((prev) => ({ ...prev, categoria: category }))}
               />
             </CardContent>
@@ -740,6 +774,7 @@ const CnpjProdutos = () => {
             <CardContent>
               <ProductTagSelector
                 value={tagsProduto}
+                suggestedTags={sectionOptions.tags}
                 onChange={setTagsProduto}
               />
             </CardContent>
@@ -752,6 +787,7 @@ const CnpjProdutos = () => {
             <CardContent>
               <ProductBrandSelector
                 value={marcaProduto}
+                options={sectionOptions.brands}
                 onChange={setMarcaProduto}
               />
             </CardContent>
