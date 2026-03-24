@@ -565,32 +565,30 @@ const CnpjProdutos = () => {
               </p>
             )}
 
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="codigo_barras">Código de barras</Label>
+                <Input
+                  id="codigo_barras"
+                  value={formData.codigo_barras || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, codigo_barras: e.target.value.replace(/\s+/g, '') }))}
+                  placeholder="Ex: 7891234567890"
+                />
+              </div>
+              <Button type="button" variant="outline" className="w-full md:w-auto" onClick={openFormScanner}>
+                <ScanLine className="h-4 w-4" />
+                Escanear
+              </Button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="produto">Produto *</Label>
                 <Input id="produto" value={formData.nome_produto} onChange={(e) => setFormData((prev) => ({ ...prev, nome_produto: e.target.value }))} placeholder="Nome do produto" />
               </div>
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 <Label htmlFor="sku">SKU</Label>
                 <Input id="sku" value={formData.sku || ''} onChange={(e) => setFormData((prev) => ({ ...prev, sku: e.target.value }))} placeholder="Código interno" />
-
-                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="codigo_barras">Código de barras</Label>
-                    <Input
-                      id="codigo_barras"
-                      value={formData.codigo_barras || ''}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, codigo_barras: e.target.value.replace(/\s+/g, '') }))}
-                      placeholder="Ex: 7891234567890"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button type="button" variant="outline" className="w-full md:w-auto" onClick={openFormScanner}>
-                      <ScanLine className="h-4 w-4" />
-                      Escanear
-                    </Button>
-                  </div>
-                </div>
               </div>
             </div>
 
