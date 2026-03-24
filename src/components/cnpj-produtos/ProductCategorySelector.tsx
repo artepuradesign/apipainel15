@@ -87,10 +87,40 @@ const addCategoryToTree = (nodes: CategoryNode[], parentId: number, newNode: Cat
 
 interface ProductCategorySelectorProps {
   value?: string;
+  options?: string[];
   onChange: (category: string) => void;
 }
 
-const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value = '', onChange }) => {
+const normalizeOptionLabels = (options: string[]) =>
+  Array.from(new Set(options.map((item) => item.trim()).filter(Boolean)));
+
+const createSyntheticNodeId = (label: string, offset = 0) =>
+  Math.abs(
+    label
+      .trim()
+      .toLowerCase()
+      .split('')
+      .reduce((acc, char) => acc * 31 + char.charCodeAt(0), 17)
+  ) + 100000 + offset;
+
+const collectTreeLabels = (nodes: CategoryNode[]): string[] =>
+  nodes.flatMap((node) => [node.label, ...(node.children ? collectTreeLabels(node.children) : [])]);
+
+const mergeCategoryOptions = (nodes: CategoryNode[], labels: string[]): CategoryNode[] => {
+  const existing = new Set(collectTreeLabels(nodes).map((label) => label.toLowerCase()));
+  const missing = normalizeOptionLabels(labels).filter((label) => !existing.has(label.toLowerCase()));
+
+  if (missing.length === 0) return nodes;
+
+  const appended = missing.map((label, index) => ({
+    id: createSyntheticNodeId(label, index),
+    label,
+  }));
+
+  return [...nodes, ...appended];
+};
+
+const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value = '', options = [], onChange }) => {
   const [tab, setTab] = useState<'all' | 'popular'>('all');
   const [showAdder, setShowAdder] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -100,6 +130,11 @@ const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value
 
   const flattened = useMemo(() => flattenCategories(categoryTree), [categoryTree]);
   const idToLabel = useMemo(() => new Map(flattened.map((item) => [item.id, item.label])), [flattened]);
+
+  useEffect(() => {
+    if (!options.length) return;
+    setCategoryTree((prev) => mergeCategoryOptions(prev, options));
+  }, [options]);
 
   useEffect(() => {
     if (!value?.trim()) return;
