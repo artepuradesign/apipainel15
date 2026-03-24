@@ -542,7 +542,7 @@ const CnpjProdutos = () => {
         }
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px] gap-4 sm:gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">{editing ? 'Editar Produto' : 'Cadastro de Produto'}</CardTitle>
