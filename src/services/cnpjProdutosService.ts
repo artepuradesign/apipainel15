@@ -37,6 +37,12 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
+export interface CnpjProdutoSections {
+  categories: string[];
+  brands: string[];
+  tags: string[];
+}
+
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   try {
     await fetchApiConfig();
@@ -77,7 +83,11 @@ export const cnpjProdutosService = {
     if (params.cnpj) qs.set('cnpj', params.cnpj);
 
     const endpoint = `/cnpj-produtos/list${qs.toString() ? `?${qs.toString()}` : ''}`;
-    return apiRequest<{ data: CnpjProduto[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
+    return apiRequest<{
+      data: CnpjProduto[];
+      pagination: { total: number; limit: number; offset: number };
+      sections?: CnpjProdutoSections;
+    }>(endpoint);
   },
 
   async criar(data: {
