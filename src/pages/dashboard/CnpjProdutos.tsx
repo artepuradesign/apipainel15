@@ -537,7 +537,7 @@ const CnpjProdutos = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-1 sm:px-0 max-w-full overflow-x-hidden">
+    <div className="space-y-4 sm:space-y-6 px-1 sm:px-0 max-w-full overflow-x-hidden [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_textarea]:text-sm">
       <DashboardTitleCard
         title="CNPJ Produtos"
         subtitle="Controle completo de produtos das empresas"
@@ -557,7 +557,7 @@ const CnpjProdutos = () => {
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px] gap-4 sm:gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">{editing ? 'Editar Produto' : 'Cadastro de Produto'}</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-semibold tracking-tight">{editing ? 'Editar Produto' : 'Cadastro de Produto'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -630,13 +630,13 @@ const CnpjProdutos = () => {
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Publicar</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Publicar</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={formData.status} onValueChange={(value: ProdutoStatus) => setFormData((prev) => ({ ...prev, status: value }))}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -652,7 +652,7 @@ const CnpjProdutos = () => {
                   value={catalogVisibility}
                   onValueChange={(value: 'loja_busca' | 'somente_loja' | 'somente_busca' | 'oculto') => setCatalogVisibility(value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -676,7 +676,7 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Imagem do produto</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Imagem do produto</CardTitle>
             </CardHeader>
             <CardContent>
               {productPhotos[0] ? (
@@ -691,7 +691,7 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Galeria de imagens do produto</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Galeria de imagens do produto</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex items-center justify-between gap-2">
@@ -723,7 +723,7 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Categorias de produto</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Categorias de produto</CardTitle>
             </CardHeader>
             <CardContent>
               <ProductCategorySelector
@@ -735,7 +735,7 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Tags de produto</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Tags de produto</CardTitle>
             </CardHeader>
             <CardContent>
               <ProductTagSelector
@@ -747,7 +747,7 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Marcas</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Marcas</CardTitle>
             </CardHeader>
             <CardContent>
               <ProductBrandSelector
@@ -759,7 +759,7 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Imagem externa em destaque</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Imagem externa em destaque</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1.5">
               <Label htmlFor="external-featured-image">URL da imagem</Label>
@@ -778,7 +778,7 @@ const CnpjProdutos = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <CardTitle className="text-base sm:text-lg">Gerenciamento de Produtos</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-semibold tracking-tight">Gerenciamento de Produtos</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
                 <Search className="h-4 w-4 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -794,7 +794,7 @@ const CnpjProdutos = () => {
                 Escanear
               </Button>
               <Select value={statusFilter} onValueChange={(value: 'todos' | ProdutoStatus) => setStatusFilter(value)}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px] text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
