@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 
 type BarcodeScannerProps = {
   onDetected: (code: string) => void;
+  enabled?: boolean;
 };
 
-export default function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
+export default function BarcodeScanner({ onDetected, enabled = true }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -18,6 +19,10 @@ export default function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
   const [manualCode, setManualCode] = useState('');
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let active = true;
 
     const stopScanner = () => {
@@ -122,7 +127,7 @@ export default function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
       active = false;
       stopScanner();
     };
-  }, [onDetected]);
+  }, [onDetected, enabled]);
 
   return (
     <div className="space-y-3">
