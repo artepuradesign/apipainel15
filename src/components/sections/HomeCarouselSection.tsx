@@ -44,7 +44,7 @@ const homeCarouselContent: Record<Locale, HomeCarouselContent> = {
         image: slide02,
       },
       {
-        title: 'Teste nossa API em nosso painel',
+        title: 'Teste nossa API no Painel de Consultas',
         subtitle: 'Integre por API ou consuma direto no painel',
         description: 'Venda e opere nos dois modelos: integração técnica e uso imediato pela interface.',
         image: slide01,
