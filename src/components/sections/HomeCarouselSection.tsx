@@ -38,9 +38,9 @@ const homeCarouselContent: Record<Locale, HomeCarouselContent> = {
     goToSlide: 'Ir para slide',
     slides: [
       {
-        title: 'Dados Cadastrais em Tempo Real',
-        subtitle: 'Validação inteligente',
-        description: 'Acesse informações cadastrais precisas e atualizadas direto no seu sistema.',
+        title: 'Gerencie seu negócio de maneira fácil e rápida',
+        subtitle: 'Cadastre produtos e tenha controle de estoque da sua empresa',
+        description: 'Organize seu catálogo, acompanhe entradas e saídas e mantenha a operação mais simples no dia a dia.',
         image: slide02,
       },
       {
