@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -20,7 +18,6 @@ const uniqueTags = (tags: string[]) => Array.from(new Set(tags.map((tag) => tag.
 
 const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', suggestedTags = [], onChange }) => {
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const [showTagCloud, setShowTagCloud] = useState(false);
 
   useEffect(() => {
@@ -49,13 +46,6 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
     syncTags(tags.filter((item) => item.toLowerCase() !== tag.toLowerCase()));
   };
 
-  const handleAddFromInput = () => {
-    if (!tagInput.trim()) return;
-    const parsed = normalizeTags(tagInput);
-    syncTags([...tags, ...parsed]);
-    setTagInput('');
-  };
-
   return (
     <div className="space-y-3 [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_textarea]:text-sm [&_button]:text-sm">
       <div className="space-y-1.5">
@@ -68,20 +58,6 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
           placeholder="Digite tags separadas por vírgula"
         />
       </div>
-
-      <div className="flex items-center gap-2">
-        <Input
-          id="new-tag-product_tag"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          placeholder="Adicionar nova tag"
-        />
-        <Button type="button" variant="outline" onClick={handleAddFromInput} disabled={!tagInput.trim()}>
-          Adicionar
-        </Button>
-      </div>
-
-      <p className="text-xs text-muted-foreground">Separar as tags com vírgulas</p>
 
       <ul className="flex flex-wrap gap-2" role="list" aria-label="Tags selecionadas">
         {tags.map((tag) => (
