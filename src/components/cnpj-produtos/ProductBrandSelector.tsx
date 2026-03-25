@@ -46,7 +46,7 @@ const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '',
 
   return (
     <div className="space-y-3 [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_button]:text-sm">
-      <div className="max-h-60 overflow-y-auto rounded-md border border-border p-3">
+      <div className="rounded-md border border-border p-3 overflow-visible md:max-h-60 md:overflow-y-auto">
         {allOptions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma marca disponível no banco ainda.</p>
         ) : (

@@ -41,7 +41,7 @@ const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value
 
   return (
     <div className="space-y-3 [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_button]:text-sm">
-      <div className="max-h-72 overflow-y-auto rounded-md border border-border p-3">
+      <div className="rounded-md border border-border p-3 overflow-visible md:max-h-72 md:overflow-y-auto">
         {allOptions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma categoria disponível no banco ainda.</p>
         ) : (
