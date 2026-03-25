@@ -1045,17 +1045,17 @@ const CnpjProdutos = () => {
         <CardHeader className="pb-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="text-base sm:text-lg font-semibold tracking-tight">Gerenciamento de Produtos</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <div className="relative">
                 <Search className="h-4 w-4 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                    placeholder="Buscar por produto, empresa, SKU ou código"
-                  className="pl-8 w-full sm:w-[280px]"
+                  className="pl-8 w-full sm:w-[280px] lg:w-[320px]"
                 />
               </div>
-              <Button type="button" variant="outline" onClick={openSearchScanner}>
+              <Button type="button" variant="outline" onClick={openSearchScanner} className="w-full sm:w-auto">
                 <ScanLine className="h-4 w-4" />
                 Escanear
               </Button>
@@ -1070,11 +1070,12 @@ const CnpjProdutos = () => {
                   <SelectItem value="rascunho">Rascunho</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={loadProdutos} disabled={loading}>
+              <Button variant="outline" onClick={loadProdutos} disabled={loading} className="w-full sm:w-auto">
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
               <Button
+                className="w-full sm:w-auto"
                 onClick={() => {
                   resetForm();
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1093,7 +1094,7 @@ const CnpjProdutos = () => {
             <div className="py-12 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</div>
           ) : (
             <>
-              <div className="md:hidden space-y-3 p-3">
+              <div className="lg:hidden space-y-3 p-3">
                 {produtos.map((produto) => {
                   const firstPhoto = normalizeProductPhotos(produto.fotos, produto.fotos_json)[0];
 
@@ -1147,7 +1148,7 @@ const CnpjProdutos = () => {
                 })}
               </div>
 
-              <div className="hidden md:block w-full overflow-x-auto">
+              <div className="hidden lg:block w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1283,10 +1284,10 @@ const CnpjProdutos = () => {
             {activeTaxonomyOptions.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum item cadastrado ainda.</p>
             ) : (
-              <ul className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-border p-2" role="list">
+              <ul className="space-y-1 overflow-visible rounded-md border border-border p-2 md:max-h-64 md:overflow-y-auto" role="list">
                 {activeTaxonomyOptions.map((item, index) => (
                   <li key={`${item}-${index}`} className="flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5">
-                    <span className="text-sm">{item}</span>
+                    <span className="min-w-0 text-sm break-words">{item}</span>
                     <div className="inline-flex items-center gap-1">
                       <Button type="button" variant="ghost" size="icon" title="Editar" onClick={() => handleTaxonomyEditStart(index)}>
                         <Pencil className="h-4 w-4" />
