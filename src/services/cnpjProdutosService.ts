@@ -53,10 +53,23 @@ export interface BarcodeLookupData {
   ncm?: string | null;
   external_featured_image_url?: string | null;
   fotos?: string[];
+  fonte_prioritaria?: 'banco_interno' | 'openfoodfacts' | 'cosmos' | 'supernovaera' | null;
+  consulta_log?: BarcodeLookupLog[];
   fontes?: {
+    banco_interno?: Record<string, any>;
     openfoodfacts?: Record<string, any>;
     cosmos?: Record<string, any>;
+    supernovaera?: Record<string, any>;
   };
+}
+
+export interface BarcodeLookupLog {
+  fonte: 'banco_interno' | 'openfoodfacts' | 'cosmos' | 'supernovaera';
+  status: 'success' | 'not_found' | 'error' | 'skipped';
+  found?: boolean;
+  mensagem: string;
+  url?: string | null;
+  tempo_ms?: number;
 }
 
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {

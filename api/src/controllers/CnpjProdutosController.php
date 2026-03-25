@@ -262,15 +262,99 @@ class CnpjProdutosController {
                 return;
             }
 
-            $openFoodFacts = $this->fetchOpenFoodFactsData($barcode);
-            $cosmos = $this->fetchCosmosData($barcode);
+            $isAdmin = $this->isAdminOrSupport($userId);
+            $lookupLog = [];
 
-            $nomeProduto = $openFoodFacts['nome_produto'] ?? $cosmos['nome_produto'] ?? null;
-            $marca = $openFoodFacts['marca'] ?? $cosmos['marca'] ?? null;
-            $categoria = $openFoodFacts['categoria'] ?? null;
+            $internalStart = microtime(true);
+            $internalMatch = $this->model->findByBarcodeForUser($barcode, $userId, $isAdmin);
+            $internalDuration = (int)round((microtime(true) - $internalStart) * 1000);
+
+            if ($internalMatch) {
+                $normalizedInternal = $this->normalizeProdutoRow($internalMatch);
+                $internalImage = $normalizedInternal['external_featured_image_url'] ?? null;
+                if (!$internalImage && !empty($normalizedInternal['fotos']) && is_array($normalizedInternal['fotos'])) {
+                    $internalImage = (string)($normalizedInternal['fotos'][0] ?? '');
+                }
+
+                $lookupLog[] = $this->buildLookupLogEntry('banco_interno', true, false, 'Produto encontrado no banco interno', null, $internalDuration);
+                $lookupLog[] = $this->buildLookupLogEntry('openfoodfacts', false, false, 'Consulta externa não executada (prioridade para banco interno)', 'https://world.openfoodfacts.org/api/v0/product/' . rawurlencode($barcode) . '.json', 0, true);
+                $lookupLog[] = $this->buildLookupLogEntry('cosmos', false, false, 'Consulta externa não executada (prioridade para banco interno)', 'https://cosmos.bluesoft.com.br/produtos/' . rawurlencode($barcode), 0, true);
+                $lookupLog[] = $this->buildLookupLogEntry('supernovaera', false, false, 'Consulta externa não executada (prioridade para banco interno)', 'https://www.supernovaera.com.br/' . rawurlencode($barcode) . '?_q=' . rawurlencode($barcode) . '&map=ft', 0, true);
+
+                Response::success([
+                    'found' => true,
+                    'codigo_barras' => $barcode,
+                    'nome_produto' => $normalizedInternal['nome_produto'] ?? null,
+                    'marca' => $normalizedInternal['marca'] ?? null,
+                    'categoria' => $normalizedInternal['categoria'] ?? null,
+                    'tags' => $normalizedInternal['tags'] ?? null,
+                    'ncm' => null,
+                    'external_featured_image_url' => $internalImage,
+                    'fotos' => !empty($normalizedInternal['fotos']) && is_array($normalizedInternal['fotos']) ? $normalizedInternal['fotos'] : (!empty($internalImage) ? [$internalImage] : []),
+                    'fonte_prioritaria' => 'banco_interno',
+                    'fontes' => [
+                        'banco_interno' => [
+                            'found' => true,
+                            'id' => $normalizedInternal['id'] ?? null,
+                            'nome_produto' => $normalizedInternal['nome_produto'] ?? null,
+                            'marca' => $normalizedInternal['marca'] ?? null,
+                            'categoria' => $normalizedInternal['categoria'] ?? null,
+                            'tags' => $normalizedInternal['tags'] ?? null,
+                            'image_url' => $internalImage,
+                        ],
+                        'openfoodfacts' => ['found' => false, 'skipped' => true],
+                        'cosmos' => ['found' => false, 'skipped' => true],
+                        'supernovaera' => ['found' => false, 'skipped' => true],
+                    ],
+                    'consulta_log' => $lookupLog,
+                ], 'Produto encontrado no banco interno');
+                return;
+            }
+
+            $lookupLog[] = $this->buildLookupLogEntry('banco_interno', false, false, 'Nenhum produto encontrado no banco interno', null, $internalDuration);
+
+            $offStart = microtime(true);
+            $openFoodFacts = $this->fetchOpenFoodFactsData($barcode);
+            $offDuration = (int)round((microtime(true) - $offStart) * 1000);
+            $lookupLog[] = $this->buildLookupLogEntry(
+                'openfoodfacts',
+                (bool)($openFoodFacts['found'] ?? false),
+                (bool)($openFoodFacts['error'] ?? false),
+                ($openFoodFacts['found'] ?? false) ? 'Dados localizados no OpenFoodFacts' : (($openFoodFacts['error'] ?? false) ? ($openFoodFacts['message'] ?? 'Falha na consulta OpenFoodFacts') : 'Sem dados no OpenFoodFacts'),
+                'https://world.openfoodfacts.org/api/v0/product/' . rawurlencode($barcode) . '.json',
+                $offDuration
+            );
+
+            $cosmosStart = microtime(true);
+            $cosmos = $this->fetchCosmosData($barcode);
+            $cosmosDuration = (int)round((microtime(true) - $cosmosStart) * 1000);
+            $lookupLog[] = $this->buildLookupLogEntry(
+                'cosmos',
+                (bool)($cosmos['found'] ?? false),
+                (bool)($cosmos['error'] ?? false),
+                ($cosmos['found'] ?? false) ? 'Dados localizados no Cosmos' : (($cosmos['error'] ?? false) ? ($cosmos['message'] ?? 'Falha na consulta Cosmos') : 'Sem dados no Cosmos'),
+                'https://cosmos.bluesoft.com.br/produtos/' . rawurlencode($barcode),
+                $cosmosDuration
+            );
+
+            $supernovaStart = microtime(true);
+            $supernova = $this->fetchSupernovaeraData($barcode);
+            $supernovaDuration = (int)round((microtime(true) - $supernovaStart) * 1000);
+            $lookupLog[] = $this->buildLookupLogEntry(
+                'supernovaera',
+                (bool)($supernova['found'] ?? false),
+                (bool)($supernova['error'] ?? false),
+                ($supernova['found'] ?? false) ? 'Dados localizados no Supernovaera' : (($supernova['error'] ?? false) ? ($supernova['message'] ?? 'Falha na consulta Supernovaera') : 'Sem dados no Supernovaera'),
+                'https://www.supernovaera.com.br/' . rawurlencode($barcode) . '?_q=' . rawurlencode($barcode) . '&map=ft',
+                $supernovaDuration
+            );
+
+            $nomeProduto = $openFoodFacts['nome_produto'] ?? $cosmos['nome_produto'] ?? $supernova['nome_produto'] ?? null;
+            $marca = $openFoodFacts['marca'] ?? $cosmos['marca'] ?? $supernova['marca'] ?? null;
+            $categoria = $openFoodFacts['categoria'] ?? $supernova['categoria'] ?? null;
             $tags = $openFoodFacts['tags'] ?? null;
-            $ncm = $openFoodFacts['ncm'] ?? $cosmos['ncm'] ?? null;
-            $imageUrl = $openFoodFacts['image_url'] ?? $cosmos['image_url'] ?? null;
+            $ncm = $openFoodFacts['ncm'] ?? $cosmos['ncm'] ?? $supernova['ncm'] ?? null;
+            $imageUrl = $openFoodFacts['image_url'] ?? $cosmos['image_url'] ?? $supernova['image_url'] ?? null;
 
             $found =
                 !empty($nomeProduto) ||
@@ -290,11 +374,15 @@ class CnpjProdutosController {
                 'ncm' => $ncm,
                 'external_featured_image_url' => $imageUrl,
                 'fotos' => !empty($imageUrl) ? [$imageUrl] : [],
+                'fonte_prioritaria' => ($openFoodFacts['found'] ?? false) ? 'openfoodfacts' : (($cosmos['found'] ?? false) ? 'cosmos' : (($supernova['found'] ?? false) ? 'supernovaera' : null)),
                 'fontes' => [
+                    'banco_interno' => ['found' => false],
                     'openfoodfacts' => $openFoodFacts,
                     'cosmos' => $cosmos,
+                    'supernovaera' => $supernova,
                 ],
-            ], $found ? 'Dados de produto encontrados' : 'Nenhum dado encontrado para este código de barras');
+                'consulta_log' => $lookupLog,
+            ], $found ? 'Dados de produto encontrados em bases externas' : 'Nenhum dado encontrado para este código de barras');
         } catch (Exception $e) {
             Response::error('Erro ao consultar código de barras: ' . $e->getMessage(), 500);
         }
@@ -651,6 +739,57 @@ class CnpjProdutosController {
             'nome_produto' => $nomeProduto,
             'ncm' => $ncm,
             'image_url' => $imageUrl,
+        ];
+    }
+
+    private function fetchSupernovaeraData(string $barcode): array {
+        $url = 'https://www.supernovaera.com.br/' . rawurlencode($barcode) . '?_q=' . rawurlencode($barcode) . '&map=ft';
+        $html = $this->requestText($url);
+
+        if (!is_string($html) || trim($html) === '') {
+            return ['found' => false];
+        }
+
+        $nomeProduto = null;
+        if (preg_match('/<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']/i', $html, $matchOgTitle)) {
+            $nomeProduto = $this->normalizeLookupText($matchOgTitle[1]);
+        }
+        if ($nomeProduto === null && preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $matchTitle)) {
+            $nomeProduto = $this->normalizeLookupText(strip_tags($matchTitle[1]));
+        }
+        if ($nomeProduto === null && preg_match('/<h1[^>]*>(.*?)<\/h1>/is', $html, $matchH1)) {
+            $nomeProduto = $this->normalizeLookupText(strip_tags($matchH1[1]));
+        }
+
+        $imageUrl = null;
+        if (preg_match('/<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']/i', $html, $matchImage)) {
+            $imageUrl = $this->normalizeLookupText($matchImage[1]);
+        }
+
+        $ncm = null;
+        $plainText = preg_replace('/\s+/u', ' ', strip_tags($html));
+        if (is_string($plainText) && preg_match('/NCM\s*:?\s*([0-9]{4}\.?[0-9]{2}\.?[0-9]{2})/iu', $plainText, $matchNcm)) {
+            $ncm = $this->normalizeLookupText($matchNcm[1]);
+        }
+
+        return [
+            'found' => ($nomeProduto !== null || $ncm !== null || $imageUrl !== null),
+            'nome_produto' => $nomeProduto,
+            'ncm' => $ncm,
+            'image_url' => $imageUrl,
+        ];
+    }
+
+    private function buildLookupLogEntry(string $source, bool $found, bool $hasError, string $message, ?string $url = null, int $durationMs = 0, bool $skipped = false): array {
+        $status = $skipped ? 'skipped' : ($hasError ? 'error' : ($found ? 'success' : 'not_found'));
+
+        return [
+            'fonte' => $source,
+            'status' => $status,
+            'found' => $found,
+            'mensagem' => $message,
+            'url' => $url,
+            'tempo_ms' => $durationMs,
         ];
     }
 

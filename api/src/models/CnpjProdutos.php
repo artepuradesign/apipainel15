@@ -119,6 +119,33 @@ class CnpjProdutos extends BaseModel {
         return $row ?: null;
     }
 
+    public function findByBarcodeForUser(string $barcode, int $userId, bool $isAdmin): ?array {
+        $normalizedBarcode = preg_replace('/\D+/', '', $barcode);
+        if ($normalizedBarcode === '') {
+            return null;
+        }
+
+        $query = "SELECT p.*, u.full_name AS owner_name
+                  FROM {$this->table} p
+                  LEFT JOIN users u ON u.id = p.user_id
+                  WHERE p.ativo = 1
+                    AND REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(p.codigo_barras, ''), ' ', ''), '.', ''), '-', ''), '/', '') = ?";
+        $params = [$normalizedBarcode];
+
+        if (!$isAdmin) {
+            $query .= ' AND p.user_id = ?';
+            $params[] = $userId;
+        }
+
+        $query .= ' ORDER BY p.updated_at DESC, p.id DESC LIMIT 1';
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function createProduto(array $data, int $userId): int {
         $query = "INSERT INTO {$this->table}
             (module_id, user_id, cnpj, nome_empresa, nome_produto, sku, categoria, categoria_id, tags, marca, marca_id, external_featured_image_url, codigo_barras, controlar_estoque, fotos_json, preco, estoque, status, ativo)

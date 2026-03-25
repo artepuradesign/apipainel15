@@ -19,7 +19,7 @@ import ProductTagSelector from '@/components/cnpj-produtos/ProductTagSelector';
 import ProductBrandSelector from '@/components/cnpj-produtos/ProductBrandSelector';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { cnpjProdutosService, type CnpjProduto, type CnpjProdutoSections, type ProdutoStatus } from '@/services/cnpjProdutosService';
+import { cnpjProdutosService, type BarcodeLookupLog, type CnpjProduto, type CnpjProdutoSections, type ProdutoStatus } from '@/services/cnpjProdutosService';
 
 const MODULE_ID = 183;
 
@@ -269,7 +269,35 @@ type BarcodeLookupPreview = {
   tags?: string | null;
   ncm?: string | null;
   external_featured_image_url?: string | null;
+  fonte_prioritaria?: 'banco_interno' | 'openfoodfacts' | 'cosmos' | 'supernovaera' | null;
+  consulta_log?: BarcodeLookupLog[];
 };
+
+const createInitialLookupLog = (barcode: string): BarcodeLookupLog[] => [
+  {
+    fonte: 'banco_interno',
+    status: 'not_found',
+    mensagem: 'Aguardando consulta no banco interno...',
+  },
+  {
+    fonte: 'openfoodfacts',
+    status: 'not_found',
+    mensagem: 'Aguardando consulta no OpenFoodFacts...',
+    url: `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
+  },
+  {
+    fonte: 'cosmos',
+    status: 'not_found',
+    mensagem: 'Aguardando consulta no Cosmos...',
+    url: `https://cosmos.bluesoft.com.br/produtos/${encodeURIComponent(barcode)}`,
+  },
+  {
+    fonte: 'supernovaera',
+    status: 'not_found',
+    mensagem: 'Aguardando consulta no Supernovaera...',
+    url: `https://www.supernovaera.com.br/${encodeURIComponent(barcode)}?_q=${encodeURIComponent(barcode)}&map=ft`,
+  },
+];
 
 const normalizeCommaValues = (value: string) =>
   value
@@ -718,7 +746,13 @@ const CnpjProdutos = () => {
 
     setFormData((prev) => ({ ...prev, codigo_barras: barcode }));
     setBarcodeLookupState('loading');
-    setBarcodeLookupMessage('Consultando OpenFoodFacts e Cosmos por código de barras...');
+    setBarcodeLookupMessage('Consultando banco interno e fontes externas...');
+    setBarcodeLookupPreview({
+      found: false,
+      codigo_barras: barcode,
+      consulta_log: createInitialLookupLog(barcode),
+    });
+    setBarcodeLookupModalOpen(true);
 
     if (!canUseUserCompanyData) {
       setBarcodeLookupState('idle');
@@ -728,32 +762,53 @@ const CnpjProdutos = () => {
     }
 
     try {
+      const startedAt = Date.now();
       const result = await cnpjProdutosService.consultarCodigoBarras(barcode);
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 1200) {
+        await new Promise((resolve) => setTimeout(resolve, 1200 - elapsed));
+      }
+
+      const normalizedPreview: BarcodeLookupPreview = {
+        found: Boolean(result.data?.found),
+        codigo_barras: result.data?.codigo_barras || barcode,
+        nome_produto: result.data?.nome_produto || '',
+        marca: result.data?.marca || '',
+        categoria: result.data?.categoria || '',
+        tags: result.data?.tags || '',
+        ncm: result.data?.ncm || '',
+        external_featured_image_url: result.data?.external_featured_image_url || '',
+        fonte_prioritaria: result.data?.fonte_prioritaria || null,
+        consulta_log: result.data?.consulta_log && result.data.consulta_log.length > 0
+          ? result.data.consulta_log
+          : createInitialLookupLog(barcode),
+      };
+
+      setBarcodeLookupPreview(normalizedPreview);
 
       if (!result.success || !result.data || !result.data.found) {
         setBarcodeLookupState('not_found');
-        setBarcodeLookupMessage('Código capturado, mas nenhuma base retornou dados para este produto. Continue manualmente.');
+        setBarcodeLookupMessage('Código capturado, mas nenhuma base retornou dados para este produto.');
         toast.success('Código capturado. Sem dados automáticos para este código.');
         return;
       }
 
-      setBarcodeLookupPreview({
-        found: Boolean(result.data.found),
-        codigo_barras: result.data.codigo_barras || barcode,
-        nome_produto: result.data.nome_produto || '',
-        marca: result.data.marca || '',
-        categoria: result.data.categoria || '',
-        tags: result.data.tags || '',
-        ncm: result.data.ncm || '',
-        external_featured_image_url: result.data.external_featured_image_url || '',
-      });
-      setBarcodeLookupModalOpen(true);
       setBarcodeLookupState('found');
-      setBarcodeLookupMessage('Dados encontrados. Revise e aplique no modal.');
+      setBarcodeLookupMessage('Consulta concluída. Revise os dados e o log no modal.');
       toast.success('Dados do produto encontrados.');
     } catch {
       setBarcodeLookupState('error');
       setBarcodeLookupMessage('Não foi possível consultar as bases agora. Continue o preenchimento manual.');
+      setBarcodeLookupPreview((prev) => ({
+        ...(prev || { found: false, codigo_barras: barcode }),
+        consulta_log: [
+          {
+            fonte: 'banco_interno',
+            status: 'error',
+            mensagem: 'Falha ao consultar as fontes.',
+          },
+        ],
+      }));
       toast.error('Falha ao consultar dados do código de barras.');
     }
   };
@@ -1396,11 +1451,18 @@ const CnpjProdutos = () => {
           <DialogHeader>
             <DialogTitle>Dados encontrados por código de barras</DialogTitle>
             <DialogDescription>
-              Confira os dados retornados pelas bases gratuitas e escolha se deseja aplicar no formulário.
+              1ª tentativa no banco interno, depois consultas externas (OpenFoodFacts, Cosmos e Supernovaera).
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
+            {barcodeLookupState === 'loading' && (
+              <div className="rounded-md border p-3 text-sm text-muted-foreground flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Coletando dados nas fontes, aguarde...
+              </div>
+            )}
+
             {barcodeLookupPreview?.external_featured_image_url ? (
               <img
                 src={barcodeLookupPreview.external_featured_image_url}
@@ -1432,13 +1494,32 @@ const CnpjProdutos = () => {
                 <p className="font-medium">{barcodeLookupPreview?.categoria || 'Não informado'}</p>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Log das consultas</p>
+              <div className="rounded-md border p-2 space-y-2 max-h-48 overflow-y-auto">
+                {(barcodeLookupPreview?.consulta_log || []).map((log, index) => (
+                  <div key={`${log.fonte}-${index}`} className="rounded border p-2 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{log.fonte}</span>
+                      <span className="text-muted-foreground">
+                        {log.status} {typeof log.tempo_ms === 'number' ? `• ${log.tempo_ms}ms` : ''}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground">{log.mensagem}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setBarcodeLookupModalOpen(false)}>
               Continuar manualmente
             </Button>
-            <Button onClick={handleApplyBarcodeLookupData}>Aplicar dados no formulário</Button>
+            <Button onClick={handleApplyBarcodeLookupData} disabled={barcodeLookupState === 'loading' || !barcodeLookupPreview?.found}>
+              Aplicar dados no formulário
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
