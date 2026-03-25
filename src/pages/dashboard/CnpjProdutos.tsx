@@ -269,7 +269,7 @@ type BarcodeLookupPreview = {
   tags?: string | null;
   ncm?: string | null;
   external_featured_image_url?: string | null;
-  fonte_prioritaria?: 'banco_interno' | 'openfoodfacts' | 'cosmos' | 'supernovaera' | null;
+  fonte_prioritaria?: 'banco_interno' | 'supernovaera' | null;
   consulta_log?: BarcodeLookupLog[];
 };
 
@@ -278,18 +278,6 @@ const createInitialLookupLog = (barcode: string): BarcodeLookupLog[] => [
     fonte: 'banco_interno',
     status: 'not_found',
     mensagem: 'Aguardando consulta no banco interno...',
-  },
-  {
-    fonte: 'openfoodfacts',
-    status: 'not_found',
-    mensagem: 'Aguardando consulta no OpenFoodFacts...',
-    url: `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
-  },
-  {
-    fonte: 'cosmos',
-    status: 'not_found',
-    mensagem: 'Aguardando consulta no Cosmos...',
-    url: `https://cosmos.bluesoft.com.br/produtos/${encodeURIComponent(barcode)}`,
   },
   {
     fonte: 'supernovaera',
@@ -746,7 +734,7 @@ const CnpjProdutos = () => {
 
     setFormData((prev) => ({ ...prev, codigo_barras: barcode }));
     setBarcodeLookupState('loading');
-    setBarcodeLookupMessage('Consultando banco interno e fontes externas...');
+    setBarcodeLookupMessage('Consultando banco interno e Supernovaera...');
     setBarcodeLookupPreview({
       found: false,
       codigo_barras: barcode,
@@ -1451,7 +1439,7 @@ const CnpjProdutos = () => {
           <DialogHeader>
             <DialogTitle>Dados encontrados por código de barras</DialogTitle>
             <DialogDescription>
-              1ª tentativa no banco interno, depois consultas externas (OpenFoodFacts, Cosmos e Supernovaera).
+              1ª tentativa no banco interno, depois consulta externa no Supernovaera.
             </DialogDescription>
           </DialogHeader>
 
