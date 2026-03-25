@@ -246,6 +246,60 @@ class CnpjProdutosController {
         }
     }
 
+    public function consultarCodigoBarras() {
+        try {
+            $userId = (int)(AuthMiddleware::getCurrentUserId() ?? 0);
+            if ($userId <= 0) {
+                Response::error('Usuário não autenticado', 401);
+                return;
+            }
+
+            $barcodeRaw = isset($_GET['codigo_barras']) ? (string)$_GET['codigo_barras'] : ((string)($_GET['codigo'] ?? ''));
+            $barcode = preg_replace('/\D+/', '', $barcodeRaw);
+
+            if (strlen($barcode) < 8 || strlen($barcode) > 32) {
+                Response::error('Código de barras inválido', 400);
+                return;
+            }
+
+            $openFoodFacts = $this->fetchOpenFoodFactsData($barcode);
+            $cosmos = $this->fetchCosmosData($barcode);
+
+            $nomeProduto = $openFoodFacts['nome_produto'] ?? $cosmos['nome_produto'] ?? null;
+            $marca = $openFoodFacts['marca'] ?? $cosmos['marca'] ?? null;
+            $categoria = $openFoodFacts['categoria'] ?? null;
+            $tags = $openFoodFacts['tags'] ?? null;
+            $ncm = $openFoodFacts['ncm'] ?? $cosmos['ncm'] ?? null;
+            $imageUrl = $openFoodFacts['image_url'] ?? $cosmos['image_url'] ?? null;
+
+            $found =
+                !empty($nomeProduto) ||
+                !empty($marca) ||
+                !empty($categoria) ||
+                !empty($tags) ||
+                !empty($ncm) ||
+                !empty($imageUrl);
+
+            Response::success([
+                'found' => $found,
+                'codigo_barras' => $barcode,
+                'nome_produto' => $nomeProduto,
+                'marca' => $marca,
+                'categoria' => $categoria,
+                'tags' => $tags,
+                'ncm' => $ncm,
+                'external_featured_image_url' => $imageUrl,
+                'fotos' => !empty($imageUrl) ? [$imageUrl] : [],
+                'fontes' => [
+                    'openfoodfacts' => $openFoodFacts,
+                    'cosmos' => $cosmos,
+                ],
+            ], $found ? 'Dados de produto encontrados' : 'Nenhum dado encontrado para este código de barras');
+        } catch (Exception $e) {
+            Response::error('Erro ao consultar código de barras: ' . $e->getMessage(), 500);
+        }
+    }
+
     private function readJsonInput(): ?array {
         $raw = file_get_contents('php://input');
         if (!$raw) {
@@ -531,5 +585,108 @@ class CnpjProdutosController {
         }
 
         return preg_replace('/[^a-zA-Z0-9._-]/', '', $decoded) ?: '';
+    }
+
+    private function fetchOpenFoodFactsData(string $barcode): array {
+        $url = 'https://world.openfoodfacts.org/api/v0/product/' . rawurlencode($barcode) . '.json';
+        $json = $this->requestJson($url);
+
+        if (!is_array($json) || !isset($json['product']) || !is_array($json['product'])) {
+            return ['found' => false];
+        }
+
+        $product = $json['product'];
+
+        $nomeProduto = $this->normalizeLookupText(
+            (string)($product['product_name_pt'] ?? $product['product_name'] ?? $product['abbreviated_product_name'] ?? '')
+        );
+        $marca = $this->normalizeLookupText((string)($product['brands'] ?? ''));
+        $categoria = $this->normalizeLookupText((string)($product['categories_pt'] ?? $product['categories'] ?? ''));
+        $tags = $this->normalizeLookupText((string)($product['labels'] ?? $product['ingredients_text'] ?? ''));
+        $ncm = $this->normalizeLookupText((string)($product['ncm'] ?? ''));
+        $imageUrl = $this->normalizeLookupText(
+            (string)($product['image_front_url'] ?? $product['image_url'] ?? $product['image_front_small_url'] ?? '')
+        );
+
+        return [
+            'found' => ($nomeProduto !== null || $marca !== null || $categoria !== null || $tags !== null || $ncm !== null || $imageUrl !== null),
+            'nome_produto' => $nomeProduto,
+            'marca' => $marca,
+            'categoria' => $categoria,
+            'tags' => $tags,
+            'ncm' => $ncm,
+            'image_url' => $imageUrl,
+        ];
+    }
+
+    private function fetchCosmosData(string $barcode): array {
+        $url = 'https://cosmos.bluesoft.com.br/produtos/' . rawurlencode($barcode);
+        $html = $this->requestText($url);
+
+        if (!is_string($html) || trim($html) === '') {
+            return ['found' => false];
+        }
+
+        $nomeProduto = null;
+        if (preg_match('/<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']/i', $html, $matchTitle)) {
+            $nomeProduto = $this->normalizeLookupText($matchTitle[1]);
+        }
+        if ($nomeProduto === null && preg_match('/<h1[^>]*>(.*?)<\/h1>/is', $html, $matchH1)) {
+            $nomeProduto = $this->normalizeLookupText(strip_tags($matchH1[1]));
+        }
+
+        $imageUrl = null;
+        if (preg_match('/<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']/i', $html, $matchImage)) {
+            $imageUrl = $this->normalizeLookupText($matchImage[1]);
+        }
+
+        $ncm = null;
+        $plainText = preg_replace('/\s+/u', ' ', strip_tags($html));
+        if (is_string($plainText) && preg_match('/NCM\s*:\s*([0-9]{4}\.?[0-9]{2}\.?[0-9]{2})/iu', $plainText, $matchNcm)) {
+            $ncm = $this->normalizeLookupText($matchNcm[1]);
+        }
+
+        return [
+            'found' => ($nomeProduto !== null || $ncm !== null || $imageUrl !== null),
+            'nome_produto' => $nomeProduto,
+            'ncm' => $ncm,
+            'image_url' => $imageUrl,
+        ];
+    }
+
+    private function requestJson(string $url): ?array {
+        $raw = $this->requestText($url);
+        if (!is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function requestText(string $url): ?string {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 8,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json, text/html;q=0.9, */*;q=0.8\r\n" .
+                    "User-Agent: API-Painel-CNPJ-Produtos/1.0\r\n",
+            ],
+        ]);
+
+        $result = @file_get_contents($url, false, $context);
+        return is_string($result) ? $result : null;
+    }
+
+    private function normalizeLookupText(string $value): ?string {
+        $normalized = html_entity_decode(trim($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $normalized = preg_replace('/\s+/u', ' ', $normalized ?? '');
+        if (!is_string($normalized)) {
+            return null;
+        }
+
+        $normalized = trim($normalized);
+        return $normalized !== '' ? mb_substr($normalized, 0, 500) : null;
     }
 }

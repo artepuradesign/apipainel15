@@ -260,6 +260,17 @@ const normalizeSections = (sections: unknown): CnpjProdutoSections => {
 
 type TaxonomyKey = keyof CnpjProdutoSections;
 
+type BarcodeLookupPreview = {
+  found: boolean;
+  codigo_barras: string;
+  nome_produto?: string | null;
+  marca?: string | null;
+  categoria?: string | null;
+  tags?: string | null;
+  ncm?: string | null;
+  external_featured_image_url?: string | null;
+};
+
 const normalizeCommaValues = (value: string) =>
   value
     .split(',')
@@ -289,6 +300,8 @@ const CnpjProdutos = () => {
   const [scannerTarget, setScannerTarget] = useState<'form' | 'search'>('form');
   const [barcodeLookupState, setBarcodeLookupState] = useState<'idle' | 'loading' | 'found' | 'not_found' | 'error'>('idle');
   const [barcodeLookupMessage, setBarcodeLookupMessage] = useState('');
+  const [barcodeLookupPreview, setBarcodeLookupPreview] = useState<BarcodeLookupPreview | null>(null);
+  const [barcodeLookupModalOpen, setBarcodeLookupModalOpen] = useState(false);
   const [editing, setEditing] = useState<CnpjProduto | null>(null);
   const [saving, setSaving] = useState(false);
   const [catalogVisibility, setCatalogVisibility] = useState<'loja_busca' | 'somente_loja' | 'somente_busca' | 'oculto'>('loja_busca');
@@ -688,6 +701,8 @@ const CnpjProdutos = () => {
   const openFormScanner = () => {
     setBarcodeLookupState('idle');
     setBarcodeLookupMessage('');
+    setBarcodeLookupPreview(null);
+    setBarcodeLookupModalOpen(false);
     setScannerTarget('form');
     setScannerOpen(true);
   };
@@ -703,7 +718,7 @@ const CnpjProdutos = () => {
 
     setFormData((prev) => ({ ...prev, codigo_barras: barcode }));
     setBarcodeLookupState('loading');
-    setBarcodeLookupMessage('Buscando produto cadastrado por código de barras...');
+    setBarcodeLookupMessage('Consultando OpenFoodFacts e Cosmos por código de barras...');
 
     if (!canUseUserCompanyData) {
       setBarcodeLookupState('idle');
@@ -713,40 +728,60 @@ const CnpjProdutos = () => {
     }
 
     try {
-      const result = await cnpjProdutosService.list({
-        limit: 50,
-        offset: 0,
-        search: barcode,
-        cnpj: userCnpj,
+      const result = await cnpjProdutosService.consultarCodigoBarras(barcode);
+
+      if (!result.success || !result.data || !result.data.found) {
+        setBarcodeLookupState('not_found');
+        setBarcodeLookupMessage('Código capturado, mas nenhuma base retornou dados para este produto. Continue manualmente.');
+        toast.success('Código capturado. Sem dados automáticos para este código.');
+        return;
+      }
+
+      setBarcodeLookupPreview({
+        found: Boolean(result.data.found),
+        codigo_barras: result.data.codigo_barras || barcode,
+        nome_produto: result.data.nome_produto || '',
+        marca: result.data.marca || '',
+        categoria: result.data.categoria || '',
+        tags: result.data.tags || '',
+        ncm: result.data.ncm || '',
+        external_featured_image_url: result.data.external_featured_image_url || '',
       });
-
-      if (!result.success || !result.data) {
-        setBarcodeLookupState('not_found');
-        setBarcodeLookupMessage('Código capturado, mas não encontramos cadastro existente. Continue o preenchimento manual.');
-        toast.success('Código capturado. Produto não encontrado, siga com o cadastro manual.');
-        return;
-      }
-
-      const matched = (result.data.data || []).find(
-        (produto) => (produto.codigo_barras || '').replace(/\s+/g, '').trim() === barcode
-      );
-
-      if (!matched) {
-        setBarcodeLookupState('not_found');
-        setBarcodeLookupMessage('Código capturado, mas não encontramos cadastro existente. Continue o preenchimento manual.');
-        toast.success('Código capturado. Produto não encontrado, siga com o cadastro manual.');
-        return;
-      }
-
-      handleEdit(matched);
+      setBarcodeLookupModalOpen(true);
       setBarcodeLookupState('found');
-      setBarcodeLookupMessage('Produto encontrado. Dados preenchidos automaticamente para edição.');
-      toast.success('Produto encontrado. Dados preenchidos automaticamente.');
+      setBarcodeLookupMessage('Dados encontrados. Revise e aplique no modal.');
+      toast.success('Dados do produto encontrados.');
     } catch {
       setBarcodeLookupState('error');
-      setBarcodeLookupMessage('Não foi possível validar o código agora. Continue o preenchimento manual.');
-      toast.success('Código capturado. Siga com o cadastro manual.');
+      setBarcodeLookupMessage('Não foi possível consultar as bases agora. Continue o preenchimento manual.');
+      toast.error('Falha ao consultar dados do código de barras.');
     }
+  };
+
+  const handleApplyBarcodeLookupData = () => {
+    if (!barcodeLookupPreview) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      codigo_barras: barcodeLookupPreview.codigo_barras || prev.codigo_barras,
+      nome_produto: barcodeLookupPreview.nome_produto?.trim() ? barcodeLookupPreview.nome_produto : prev.nome_produto,
+      categoria: barcodeLookupPreview.categoria?.trim() ? barcodeLookupPreview.categoria : prev.categoria,
+    }));
+
+    if (barcodeLookupPreview.marca?.trim()) {
+      setMarcaProduto(barcodeLookupPreview.marca);
+    }
+
+    if (barcodeLookupPreview.tags?.trim()) {
+      setTagsProduto(barcodeLookupPreview.tags);
+    }
+
+    if (barcodeLookupPreview.external_featured_image_url?.trim()) {
+      setExternalFeaturedImageUrl(barcodeLookupPreview.external_featured_image_url);
+    }
+
+    setBarcodeLookupModalOpen(false);
+    toast.success('Dados aplicados ao cadastro do produto.');
   };
 
   return (
@@ -1352,6 +1387,58 @@ const CnpjProdutos = () => {
             <Button onClick={handleDelete} disabled={deleting}>
               {deleting ? 'Excluindo...' : 'Confirmar exclusão'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={barcodeLookupModalOpen} onOpenChange={setBarcodeLookupModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dados encontrados por código de barras</DialogTitle>
+            <DialogDescription>
+              Confira os dados retornados pelas bases gratuitas e escolha se deseja aplicar no formulário.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {barcodeLookupPreview?.external_featured_image_url ? (
+              <img
+                src={barcodeLookupPreview.external_featured_image_url}
+                alt={barcodeLookupPreview.nome_produto || 'Imagem do produto encontrado'}
+                loading="lazy"
+                className="h-40 w-full rounded-md border object-contain bg-muted/20"
+              />
+            ) : null}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              <div className="rounded-md border p-2">
+                <p className="text-xs text-muted-foreground">Código de barras</p>
+                <p className="font-medium break-all">{barcodeLookupPreview?.codigo_barras || '—'}</p>
+              </div>
+              <div className="rounded-md border p-2">
+                <p className="text-xs text-muted-foreground">NCM</p>
+                <p className="font-medium">{barcodeLookupPreview?.ncm || 'Não informado'}</p>
+              </div>
+              <div className="rounded-md border p-2 sm:col-span-2">
+                <p className="text-xs text-muted-foreground">Nome do produto</p>
+                <p className="font-medium">{barcodeLookupPreview?.nome_produto || 'Não informado'}</p>
+              </div>
+              <div className="rounded-md border p-2">
+                <p className="text-xs text-muted-foreground">Marca</p>
+                <p className="font-medium">{barcodeLookupPreview?.marca || 'Não informado'}</p>
+              </div>
+              <div className="rounded-md border p-2">
+                <p className="text-xs text-muted-foreground">Categoria</p>
+                <p className="font-medium">{barcodeLookupPreview?.categoria || 'Não informado'}</p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBarcodeLookupModalOpen(false)}>
+              Continuar manualmente
+            </Button>
+            <Button onClick={handleApplyBarcodeLookupData}>Aplicar dados no formulário</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
