@@ -766,7 +766,10 @@ const CnpjProdutos = () => {
         tags: result.data?.tags || '',
         ncm: result.data?.ncm || '',
         external_featured_image_url: result.data?.external_featured_image_url || '',
-        fonte_prioritaria: result.data?.fonte_prioritaria || null,
+        fonte_prioritaria:
+          result.data?.fonte_prioritaria === 'banco_interno' || result.data?.fonte_prioritaria === 'supernovaera'
+            ? result.data.fonte_prioritaria
+            : null,
         consulta_log: result.data?.consulta_log && result.data.consulta_log.length > 0
           ? result.data.consulta_log
           : createInitialLookupLog(barcode),
