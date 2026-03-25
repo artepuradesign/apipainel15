@@ -693,6 +693,46 @@ const CnpjProdutos = () => {
     setScannerOpen(true);
   };
 
+  const handleScannedBarcodeForForm = async (rawValue: string) => {
+    const barcode = rawValue.replace(/\s+/g, '').trim();
+    if (!barcode) return;
+
+    setFormData((prev) => ({ ...prev, codigo_barras: barcode }));
+
+    if (!canUseUserCompanyData) {
+      toast.success('Código de barras capturado');
+      return;
+    }
+
+    try {
+      const result = await cnpjProdutosService.list({
+        limit: 50,
+        offset: 0,
+        search: barcode,
+        cnpj: userCnpj,
+      });
+
+      if (!result.success || !result.data) {
+        toast.success('Código capturado. Produto não encontrado, siga com o cadastro manual.');
+        return;
+      }
+
+      const matched = (result.data.data || []).find(
+        (produto) => (produto.codigo_barras || '').replace(/\s+/g, '').trim() === barcode
+      );
+
+      if (!matched) {
+        toast.success('Código capturado. Produto não encontrado, siga com o cadastro manual.');
+        return;
+      }
+
+      handleEdit(matched);
+      toast.success('Produto encontrado. Dados preenchidos automaticamente.');
+    } catch {
+      toast.success('Código capturado. Siga com o cadastro manual.');
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 px-1 sm:px-0 max-w-full overflow-x-hidden [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_textarea]:text-sm">
       <DashboardTitleCard
@@ -1292,8 +1332,7 @@ const CnpjProdutos = () => {
                 setSearch(value);
                 toast.success('Código aplicado na busca');
               } else {
-                setFormData((prev) => ({ ...prev, codigo_barras: value }));
-                toast.success('Código de barras capturado');
+                void handleScannedBarcodeForForm(value);
               }
               setScannerOpen(false);
             }}
