@@ -4,26 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-type PopularTag = {
-  name: string;
-  size: 'sm' | 'md' | 'lg';
-};
-
-const POPULAR_TAGS: PopularTag[] = [
-  { name: 'bebida energética', size: 'md' },
-  { name: 'Brilho Intenso', size: 'lg' },
-  { name: 'Cabelos Danificados', size: 'md' },
-  { name: 'Cachaça Premium', size: 'md' },
-  { name: 'energia natural', size: 'md' },
-  { name: 'Hidratação Profunda', size: 'md' },
-  { name: 'sem açúcar', size: 'sm' },
-  { name: 'sem glúten', size: 'sm' },
-  { name: 'suco funcional', size: 'md' },
-  { name: 'Tratamento Capilar', size: 'md' },
-  { name: 'vitamina C', size: 'sm' },
-  { name: 'zero açúcar', size: 'sm' },
-];
-
 interface ProductTagSelectorProps {
   value?: string;
   suggestedTags?: string[];
@@ -48,21 +28,10 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
   }, [value]);
 
   const joinedTags = useMemo(() => tags.join(', '), [tags]);
-  const cloudTags = useMemo(() => {
-    const base = new Map(POPULAR_TAGS.map((item) => [item.name.toLowerCase(), item]));
-
-    suggestedTags
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((name) => {
-        const key = name.toLowerCase();
-        if (!base.has(key)) {
-          base.set(key, { name, size: 'md' });
-        }
-      });
-
-    return Array.from(base.values());
-  }, [suggestedTags]);
+  const cloudTags = useMemo(
+    () => uniqueTags(suggestedTags.map((item) => item.trim()).filter(Boolean)),
+    [suggestedTags]
+  );
 
   const syncTags = (next: string[]) => {
     const normalized = uniqueTags(next);
@@ -85,12 +54,6 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
     const parsed = normalizeTags(tagInput);
     syncTags([...tags, ...parsed]);
     setTagInput('');
-  };
-
-  const cloudTextSize: Record<PopularTag['size'], string> = {
-    sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-base font-medium',
   };
 
   return (
@@ -136,27 +99,29 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
         ))}
       </ul>
 
-      <div>
-        <button type="button" className="text-sm text-primary hover:underline" onClick={() => setShowTagCloud((prev) => !prev)}>
-          Escolher das tags mais usadas
-        </button>
+      {cloudTags.length > 0 && (
+        <div>
+          <button type="button" className="text-sm text-primary hover:underline" onClick={() => setShowTagCloud((prev) => !prev)}>
+            Escolher das tags disponíveis
+          </button>
 
-        {showTagCloud && (
-          <ul className="mt-2 flex flex-wrap gap-2 rounded-md border border-border p-3" role="list" aria-label="Nuvem de tags populares">
-            {cloudTags.map((tag) => (
-              <li key={tag.name}>
-                <button
-                  type="button"
-                  className={`text-primary hover:underline ${cloudTextSize[tag.size]}`}
-                  onClick={() => addTag(tag.name)}
-                >
-                  {tag.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          {showTagCloud && (
+            <ul className="mt-2 flex flex-wrap gap-2 rounded-md border border-border p-3" role="list" aria-label="Nuvem de tags disponíveis">
+              {cloudTags.map((tag) => (
+                <li key={tag}>
+                  <button
+                    type="button"
+                    className="text-sm text-primary hover:underline"
+                    onClick={() => addTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 };
