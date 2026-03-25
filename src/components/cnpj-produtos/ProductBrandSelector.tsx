@@ -1,7 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface ProductBrandSelectorProps {
   value?: string;
@@ -14,10 +11,8 @@ const normalizeBrandOptions = (options: string[]) =>
 
 const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '', options = [], onChange }) => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [customBrands, setCustomBrands] = useState<string[]>([]);
-  const [newBrandName, setNewBrandName] = useState('');
   const normalizedOptions = useMemo(() => normalizeBrandOptions(options), [options]);
-  const allOptions = useMemo(() => normalizeBrandOptions([...normalizedOptions, ...customBrands]), [normalizedOptions, customBrands]);
+  const allOptions = useMemo(() => normalizeBrandOptions([...normalizedOptions, ...selectedBrands]), [normalizedOptions, selectedBrands]);
 
   useEffect(() => {
     const parsed = value
@@ -30,14 +25,9 @@ const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '',
       return;
     }
 
-    const missingFromOptions = parsed.filter((item) => !allOptions.some((option) => option.toLowerCase() === item.toLowerCase()));
-    if (missingFromOptions.length > 0) {
-      setCustomBrands((prev) => normalizeBrandOptions([...prev, ...missingFromOptions]));
-    }
-
     const nextSelected = [...new Set(parsed)];
     setSelectedBrands(nextSelected);
-  }, [allOptions, value]);
+  }, [value]);
 
   const syncSelected = (next: string[]) => {
     setSelectedBrands(next);
@@ -52,19 +42,6 @@ const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '',
     }
 
     syncSelected([...selectedBrands, label]);
-  };
-
-  const handleAddBrand = () => {
-    const name = newBrandName.trim();
-    if (!name) return;
-
-    const nextCustom = normalizeBrandOptions([...customBrands, name]);
-    setCustomBrands(nextCustom);
-
-    const alreadySelected = selectedBrands.some((item) => item.toLowerCase() === name.toLowerCase());
-    const nextSelected = alreadySelected ? selectedBrands : [...selectedBrands, name];
-    syncSelected(nextSelected);
-    setNewBrandName('');
   };
 
   return (
@@ -89,23 +66,6 @@ const ProductBrandSelector: React.FC<ProductBrandSelectorProps> = ({ value = '',
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="space-y-2 border-t border-border pt-2">
-        <Label htmlFor="newproduct_brand" className="text-xs text-muted-foreground">
-          Adicionar nova marca
-        </Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="newproduct_brand"
-            value={newBrandName}
-            onChange={(e) => setNewBrandName(e.target.value)}
-            placeholder="Nova marca"
-          />
-          <Button type="button" onClick={handleAddBrand} disabled={!newBrandName.trim()}>
-            Adicionar
-          </Button>
-        </div>
       </div>
     </div>
   );

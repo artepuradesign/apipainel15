@@ -258,6 +258,19 @@ const normalizeSections = (sections: unknown): CnpjProdutoSections => {
   };
 };
 
+type TaxonomyKey = keyof CnpjProdutoSections;
+
+const normalizeCommaValues = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const removeCommaValue = (value: string, target: string) =>
+  normalizeCommaValues(value)
+    .filter((item) => item.toLowerCase() !== target.toLowerCase())
+    .join(', ');
+
 const CnpjProdutos = () => {
   const { profile, user } = useAuth();
   const isAdmin = profile?.user_role === 'admin' || profile?.user_role === 'suporte';
@@ -281,6 +294,10 @@ const CnpjProdutos = () => {
   const [marcaProduto, setMarcaProduto] = useState('');
   const [externalFeaturedImageUrl, setExternalFeaturedImageUrl] = useState('');
   const [sectionOptions, setSectionOptions] = useState<CnpjProdutoSections>(emptySections);
+  const [taxonomyOverrides, setTaxonomyOverrides] = useState<Partial<Record<TaxonomyKey, string[]>>>({});
+  const [taxonomyModal, setTaxonomyModal] = useState<{ open: boolean; key: TaxonomyKey | null }>({ open: false, key: null });
+  const [taxonomyInput, setTaxonomyInput] = useState('');
+  const [taxonomyEditingIndex, setTaxonomyEditingIndex] = useState<number | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<CnpjProduto | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -342,6 +359,113 @@ const CnpjProdutos = () => {
 
     return { total, ativos, rascunho, baixoEstoque };
   }, [produtos]);
+
+  const taxonomyLabels: Record<TaxonomyKey, string> = {
+    categories: 'categorias',
+    tags: 'tags',
+    brands: 'marcas',
+  };
+
+  const getTaxonomyOptions = useCallback(
+    (key: TaxonomyKey) => normalizeSectionValues(taxonomyOverrides[key] ?? sectionOptions[key]),
+    [sectionOptions, taxonomyOverrides]
+  );
+
+  const sectionOptionsForForm = useMemo<CnpjProdutoSections>(
+    () => ({
+      categories: getTaxonomyOptions('categories'),
+      tags: getTaxonomyOptions('tags'),
+      brands: getTaxonomyOptions('brands'),
+    }),
+    [getTaxonomyOptions]
+  );
+
+  const activeTaxonomyKey = taxonomyModal.key;
+  const activeTaxonomyOptions = useMemo(
+    () => (activeTaxonomyKey ? getTaxonomyOptions(activeTaxonomyKey) : []),
+    [activeTaxonomyKey, getTaxonomyOptions]
+  );
+
+  const closeTaxonomyModal = () => {
+    setTaxonomyModal({ open: false, key: null });
+    setTaxonomyInput('');
+    setTaxonomyEditingIndex(null);
+  };
+
+  const openTaxonomyModal = (key: TaxonomyKey) => {
+    setTaxonomyModal({ open: true, key });
+    setTaxonomyInput('');
+    setTaxonomyEditingIndex(null);
+  };
+
+  const handleTaxonomySubmit = () => {
+    if (!activeTaxonomyKey) return;
+
+    const value = taxonomyInput.trim();
+    if (!value) return;
+
+    const duplicated = activeTaxonomyOptions.some(
+      (item, index) => item.toLowerCase() === value.toLowerCase() && index !== taxonomyEditingIndex
+    );
+
+    if (duplicated) {
+      toast.error(`Essa ${taxonomyLabels[activeTaxonomyKey].slice(0, -1)} já existe.`);
+      return;
+    }
+
+    const next = [...activeTaxonomyOptions];
+
+    if (taxonomyEditingIndex === null) {
+      next.push(value);
+    } else {
+      next[taxonomyEditingIndex] = value;
+    }
+
+    setTaxonomyOverrides((prev) => ({
+      ...prev,
+      [activeTaxonomyKey]: normalizeSectionValues(next),
+    }));
+    setTaxonomyInput('');
+    setTaxonomyEditingIndex(null);
+  };
+
+  const handleTaxonomyEditStart = (index: number) => {
+    const selected = activeTaxonomyOptions[index];
+    if (!selected) return;
+    setTaxonomyEditingIndex(index);
+    setTaxonomyInput(selected);
+  };
+
+  const handleTaxonomyDelete = (index: number) => {
+    if (!activeTaxonomyKey) return;
+
+    const removed = activeTaxonomyOptions[index];
+    if (!removed) return;
+
+    const next = activeTaxonomyOptions.filter((_, itemIndex) => itemIndex !== index);
+
+    setTaxonomyOverrides((prev) => ({
+      ...prev,
+      [activeTaxonomyKey]: normalizeSectionValues(next),
+    }));
+
+    if (taxonomyEditingIndex === index) {
+      setTaxonomyEditingIndex(null);
+      setTaxonomyInput('');
+    }
+
+    if (activeTaxonomyKey === 'categories' && formData.categoria?.toLowerCase() === removed.toLowerCase()) {
+      setFormData((prev) => ({ ...prev, categoria: '' }));
+    }
+
+    if (activeTaxonomyKey === 'brands') {
+      setMarcaProduto((prev) => removeCommaValue(prev, removed));
+    }
+
+    if (activeTaxonomyKey === 'tags') {
+      setTagsProduto((prev) => removeCommaValue(prev, removed));
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -756,12 +880,25 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Categorias de produto</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Categorias de produto</CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full"
+                  aria-label="Gerenciar categorias"
+                  title="Gerenciar categorias"
+                  onClick={() => openTaxonomyModal('categories')}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <ProductCategorySelector
                 value={formData.categoria || ''}
-                options={sectionOptions.categories}
+                options={sectionOptionsForForm.categories}
                 onChange={(category) => setFormData((prev) => ({ ...prev, categoria: category }))}
               />
             </CardContent>
@@ -769,12 +906,25 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Tags de produto</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Tags de produto</CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full"
+                  aria-label="Gerenciar tags"
+                  title="Gerenciar tags"
+                  onClick={() => openTaxonomyModal('tags')}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <ProductTagSelector
                 value={tagsProduto}
-                suggestedTags={sectionOptions.tags}
+                suggestedTags={sectionOptionsForForm.tags}
                 onChange={setTagsProduto}
               />
             </CardContent>
@@ -782,12 +932,25 @@ const CnpjProdutos = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Marcas</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Marcas</CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full"
+                  aria-label="Gerenciar marcas"
+                  title="Gerenciar marcas"
+                  onClick={() => openTaxonomyModal('brands')}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <ProductBrandSelector
                 value={marcaProduto}
-                options={sectionOptions.brands}
+                options={sectionOptionsForForm.brands}
                 onChange={setMarcaProduto}
               />
             </CardContent>
@@ -1019,6 +1182,77 @@ const CnpjProdutos = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={taxonomyModal.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeTaxonomyModal();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Gerenciar {activeTaxonomyKey ? taxonomyLabels[activeTaxonomyKey] : 'taxonomia'}
+            </DialogTitle>
+            <DialogDescription>
+              Adicione, edite ou exclua {activeTaxonomyKey ? taxonomyLabels[activeTaxonomyKey] : 'itens'} para usar neste cadastro.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Input
+                value={taxonomyInput}
+                onChange={(e) => setTaxonomyInput(e.target.value)}
+                placeholder={`Nome da ${activeTaxonomyKey ? taxonomyLabels[activeTaxonomyKey].slice(0, -1) : 'opção'}`}
+              />
+              <Button type="button" onClick={handleTaxonomySubmit} disabled={!taxonomyInput.trim()}>
+                {taxonomyEditingIndex === null ? 'Adicionar' : 'Salvar'}
+              </Button>
+            </div>
+
+            {activeTaxonomyOptions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum item cadastrado ainda.</p>
+            ) : (
+              <ul className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-border p-2" role="list">
+                {activeTaxonomyOptions.map((item, index) => (
+                  <li key={`${item}-${index}`} className="flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5">
+                    <span className="text-sm">{item}</span>
+                    <div className="inline-flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="icon" title="Editar" onClick={() => handleTaxonomyEditStart(index)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon" title="Excluir" onClick={() => handleTaxonomyDelete(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <DialogFooter>
+            {taxonomyEditingIndex !== null && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setTaxonomyEditingIndex(null);
+                  setTaxonomyInput('');
+                }}
+              >
+                Cancelar edição
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={closeTaxonomyModal}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
