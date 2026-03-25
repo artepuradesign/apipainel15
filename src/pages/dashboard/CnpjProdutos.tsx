@@ -281,9 +281,6 @@ const CnpjProdutos = () => {
   const [marcaProduto, setMarcaProduto] = useState('');
   const [externalFeaturedImageUrl, setExternalFeaturedImageUrl] = useState('');
   const [sectionOptions, setSectionOptions] = useState<CnpjProdutoSections>(emptySections);
-  const hasCategoryOptions = sectionOptions.categories.length > 0;
-  const hasTagOptions = sectionOptions.tags.length > 0;
-  const hasBrandOptions = sectionOptions.brands.length > 0;
 
   const [deleteTarget, setDeleteTarget] = useState<CnpjProduto | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -757,50 +754,44 @@ const CnpjProdutos = () => {
             </CardContent>
           </Card>
 
-          {hasCategoryOptions && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Categorias de produto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ProductCategorySelector
-                  value={formData.categoria || ''}
-                  options={sectionOptions.categories}
-                  onChange={(category) => setFormData((prev) => ({ ...prev, categoria: category }))}
-                />
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Categorias de produto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ProductCategorySelector
+                value={formData.categoria || ''}
+                options={sectionOptions.categories}
+                onChange={(category) => setFormData((prev) => ({ ...prev, categoria: category }))}
+              />
+            </CardContent>
+          </Card>
 
-          {hasTagOptions && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Tags de produto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ProductTagSelector
-                  value={tagsProduto}
-                  suggestedTags={sectionOptions.tags}
-                  onChange={setTagsProduto}
-                />
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Tags de produto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ProductTagSelector
+                value={tagsProduto}
+                suggestedTags={sectionOptions.tags}
+                onChange={setTagsProduto}
+              />
+            </CardContent>
+          </Card>
 
-          {hasBrandOptions && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Marcas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ProductBrandSelector
-                  value={marcaProduto}
-                  options={sectionOptions.brands}
-                  onChange={setMarcaProduto}
-                />
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">Marcas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ProductBrandSelector
+                value={marcaProduto}
+                options={sectionOptions.brands}
+                onChange={setMarcaProduto}
+              />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="pb-3">
