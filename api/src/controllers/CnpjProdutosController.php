@@ -277,8 +277,6 @@ class CnpjProdutosController {
                 }
 
                 $lookupLog[] = $this->buildLookupLogEntry('banco_interno', true, false, 'Produto encontrado no banco interno', null, $internalDuration);
-                $lookupLog[] = $this->buildLookupLogEntry('openfoodfacts', false, false, 'Consulta externa não executada (prioridade para banco interno)', 'https://world.openfoodfacts.org/api/v0/product/' . rawurlencode($barcode) . '.json', 0, true);
-                $lookupLog[] = $this->buildLookupLogEntry('cosmos', false, false, 'Consulta externa não executada (prioridade para banco interno)', 'https://cosmos.bluesoft.com.br/produtos/' . rawurlencode($barcode), 0, true);
                 $lookupLog[] = $this->buildLookupLogEntry('supernovaera', false, false, 'Consulta externa não executada (prioridade para banco interno)', 'https://www.supernovaera.com.br/' . rawurlencode($barcode) . '?_q=' . rawurlencode($barcode) . '&map=ft', 0, true);
 
                 Response::success([
@@ -302,8 +300,6 @@ class CnpjProdutosController {
                             'tags' => $normalizedInternal['tags'] ?? null,
                             'image_url' => $internalImage,
                         ],
-                        'openfoodfacts' => ['found' => false, 'skipped' => true],
-                        'cosmos' => ['found' => false, 'skipped' => true],
                         'supernovaera' => ['found' => false, 'skipped' => true],
                     ],
                     'consulta_log' => $lookupLog,
@@ -312,30 +308,6 @@ class CnpjProdutosController {
             }
 
             $lookupLog[] = $this->buildLookupLogEntry('banco_interno', false, false, 'Nenhum produto encontrado no banco interno', null, $internalDuration);
-
-            $offStart = microtime(true);
-            $openFoodFacts = $this->fetchOpenFoodFactsData($barcode);
-            $offDuration = (int)round((microtime(true) - $offStart) * 1000);
-            $lookupLog[] = $this->buildLookupLogEntry(
-                'openfoodfacts',
-                (bool)($openFoodFacts['found'] ?? false),
-                (bool)($openFoodFacts['error'] ?? false),
-                ($openFoodFacts['found'] ?? false) ? 'Dados localizados no OpenFoodFacts' : (($openFoodFacts['error'] ?? false) ? ($openFoodFacts['message'] ?? 'Falha na consulta OpenFoodFacts') : 'Sem dados no OpenFoodFacts'),
-                'https://world.openfoodfacts.org/api/v0/product/' . rawurlencode($barcode) . '.json',
-                $offDuration
-            );
-
-            $cosmosStart = microtime(true);
-            $cosmos = $this->fetchCosmosData($barcode);
-            $cosmosDuration = (int)round((microtime(true) - $cosmosStart) * 1000);
-            $lookupLog[] = $this->buildLookupLogEntry(
-                'cosmos',
-                (bool)($cosmos['found'] ?? false),
-                (bool)($cosmos['error'] ?? false),
-                ($cosmos['found'] ?? false) ? 'Dados localizados no Cosmos' : (($cosmos['error'] ?? false) ? ($cosmos['message'] ?? 'Falha na consulta Cosmos') : 'Sem dados no Cosmos'),
-                'https://cosmos.bluesoft.com.br/produtos/' . rawurlencode($barcode),
-                $cosmosDuration
-            );
 
             $supernovaStart = microtime(true);
             $supernova = $this->fetchSupernovaeraData($barcode);
@@ -349,12 +321,12 @@ class CnpjProdutosController {
                 $supernovaDuration
             );
 
-            $nomeProduto = $openFoodFacts['nome_produto'] ?? $cosmos['nome_produto'] ?? $supernova['nome_produto'] ?? null;
-            $marca = $openFoodFacts['marca'] ?? $cosmos['marca'] ?? $supernova['marca'] ?? null;
-            $categoria = $openFoodFacts['categoria'] ?? $supernova['categoria'] ?? null;
-            $tags = $openFoodFacts['tags'] ?? null;
-            $ncm = $openFoodFacts['ncm'] ?? $cosmos['ncm'] ?? $supernova['ncm'] ?? null;
-            $imageUrl = $openFoodFacts['image_url'] ?? $cosmos['image_url'] ?? $supernova['image_url'] ?? null;
+            $nomeProduto = $supernova['nome_produto'] ?? null;
+            $marca = $supernova['marca'] ?? null;
+            $categoria = $supernova['categoria'] ?? null;
+            $tags = $supernova['tags'] ?? null;
+            $ncm = $supernova['ncm'] ?? null;
+            $imageUrl = $supernova['image_url'] ?? null;
 
             $found =
                 !empty($nomeProduto) ||
@@ -374,11 +346,9 @@ class CnpjProdutosController {
                 'ncm' => $ncm,
                 'external_featured_image_url' => $imageUrl,
                 'fotos' => !empty($imageUrl) ? [$imageUrl] : [],
-                'fonte_prioritaria' => ($openFoodFacts['found'] ?? false) ? 'openfoodfacts' : (($cosmos['found'] ?? false) ? 'cosmos' : (($supernova['found'] ?? false) ? 'supernovaera' : null)),
+                'fonte_prioritaria' => ($supernova['found'] ?? false) ? 'supernovaera' : null,
                 'fontes' => [
                     'banco_interno' => ['found' => false],
-                    'openfoodfacts' => $openFoodFacts,
-                    'cosmos' => $cosmos,
                     'supernovaera' => $supernova,
                 ],
                 'consulta_log' => $lookupLog,
@@ -760,10 +730,19 @@ class CnpjProdutosController {
         if ($nomeProduto === null && preg_match('/<h1[^>]*>(.*?)<\/h1>/is', $html, $matchH1)) {
             $nomeProduto = $this->normalizeLookupText(strip_tags($matchH1[1]));
         }
+        if ($nomeProduto === null && preg_match('/vtex-product-summary-2-x-productBrand[^>]*>(.*?)<\/span>/is', $html, $matchBrandName)) {
+            $nomeProduto = $this->normalizeLookupText(strip_tags($matchBrandName[1]));
+        }
+        if ($nomeProduto === null && preg_match('/aria-label=["\']Produto\s+([^"\']+)["\']/iu', $html, $matchAria)) {
+            $nomeProduto = $this->normalizeLookupText($matchAria[1]);
+        }
 
         $imageUrl = null;
         if (preg_match('/<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']/i', $html, $matchImage)) {
             $imageUrl = $this->normalizeLookupText($matchImage[1]);
+        }
+        if ($imageUrl === null && preg_match('/vtex-product-summary-2-x-imageNormal[^>]*src=["\']([^"\']+)["\']/i', $html, $matchCardImage)) {
+            $imageUrl = $this->normalizeLookupText($matchCardImage[1]);
         }
 
         $ncm = null;
@@ -772,9 +751,19 @@ class CnpjProdutosController {
             $ncm = $this->normalizeLookupText($matchNcm[1]);
         }
 
+        $marca = null;
+        if ($nomeProduto !== null) {
+            if (preg_match('/\b([A-ZÀ-Ú0-9][A-ZÀ-Ú0-9\-]{2,})\s+\d+(?:[\.,]\d+)?\s*(?:G|KG|ML|L|UN)\b/u', mb_strtoupper($nomeProduto, 'UTF-8'), $matchMarca)) {
+                $marca = $this->normalizeLookupText($matchMarca[1]);
+            }
+        }
+
         return [
-            'found' => ($nomeProduto !== null || $ncm !== null || $imageUrl !== null),
+            'found' => ($nomeProduto !== null || $ncm !== null || $imageUrl !== null || $marca !== null),
             'nome_produto' => $nomeProduto,
+            'marca' => $marca,
+            'categoria' => null,
+            'tags' => null,
             'ncm' => $ncm,
             'image_url' => $imageUrl,
         ];
