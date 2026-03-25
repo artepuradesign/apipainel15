@@ -39,16 +39,6 @@ const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value
     onChange(next);
   };
 
-  const handleAddCategory = () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-
-    setCustomCategories((prev) => normalizeOptionLabels([...prev, name]));
-    setSelectedCategory(name);
-    onChange(name);
-    setNewCategoryName('');
-  };
-
   return (
     <div className="space-y-3 [&_label]:text-[13px] sm:[&_label]:text-sm [&_input]:text-sm [&_button]:text-sm">
       <div className="max-h-72 overflow-y-auto rounded-md border border-border p-3">
