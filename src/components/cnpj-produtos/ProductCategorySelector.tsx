@@ -1,7 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface ProductCategorySelectorProps {
   value?: string;
@@ -14,10 +11,11 @@ const normalizeOptionLabels = (options: string[]) =>
 
 const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value = '', options = [], onChange }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
-  const [newCategoryName, setNewCategoryName] = useState('');
   const normalizedOptions = useMemo(() => normalizeOptionLabels(options), [options]);
-  const allOptions = useMemo(() => normalizeOptionLabels([...normalizedOptions, ...customCategories]), [normalizedOptions, customCategories]);
+  const allOptions = useMemo(
+    () => normalizeOptionLabels([...normalizedOptions, selectedCategory]),
+    [normalizedOptions, selectedCategory]
+  );
 
   useEffect(() => {
     const currentValue = value.trim();
@@ -26,30 +24,19 @@ const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value
       return;
     }
 
-    const matched = allOptions.find((item) => item.toLowerCase() === currentValue.toLowerCase());
+    const matched = normalizedOptions.find((item) => item.toLowerCase() === currentValue.toLowerCase());
     if (matched) {
       setSelectedCategory(matched);
       return;
     }
 
-    setCustomCategories((prev) => normalizeOptionLabels([...prev, currentValue]));
     setSelectedCategory(currentValue);
-  }, [allOptions, value]);
+  }, [normalizedOptions, value]);
 
   const toggleCategory = (category: string) => {
     const next = selectedCategory.toLowerCase() === category.toLowerCase() ? '' : category;
     setSelectedCategory(next);
     onChange(next);
-  };
-
-  const handleAddCategory = () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-
-    setCustomCategories((prev) => normalizeOptionLabels([...prev, name]));
-    setSelectedCategory(name);
-    onChange(name);
-    setNewCategoryName('');
   };
 
   return (
@@ -74,23 +61,6 @@ const ProductCategorySelector: React.FC<ProductCategorySelectorProps> = ({ value
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="space-y-2 border-t border-border pt-2">
-        <Label htmlFor="newproduct_cat" className="text-xs text-muted-foreground">
-          Adicionar nova categoria
-        </Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="newproduct_cat"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="Novo nome da categoria"
-          />
-          <Button type="button" onClick={handleAddCategory} disabled={!newCategoryName.trim()}>
-            Adicionar
-          </Button>
-        </div>
       </div>
     </div>
   );
