@@ -1234,8 +1234,8 @@ const CnpjProdutos = () => {
             )}
           </div>
 
-          <DialogFooter>
-            {taxonomyEditingIndex !== null && (
+          {taxonomyEditingIndex !== null && (
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -1246,11 +1246,8 @@ const CnpjProdutos = () => {
               >
                 Cancelar edição
               </Button>
-            )}
-            <Button type="button" variant="outline" onClick={closeTaxonomyModal}>
-              Fechar
-            </Button>
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
