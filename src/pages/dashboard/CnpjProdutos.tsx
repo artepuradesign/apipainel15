@@ -287,6 +287,8 @@ const CnpjProdutos = () => {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerTarget, setScannerTarget] = useState<'form' | 'search'>('form');
+  const [barcodeLookupState, setBarcodeLookupState] = useState<'idle' | 'loading' | 'found' | 'not_found' | 'error'>('idle');
+  const [barcodeLookupMessage, setBarcodeLookupMessage] = useState('');
   const [editing, setEditing] = useState<CnpjProduto | null>(null);
   const [saving, setSaving] = useState(false);
   const [catalogVisibility, setCatalogVisibility] = useState<'loja_busca' | 'somente_loja' | 'somente_busca' | 'oculto'>('loja_busca');
@@ -684,6 +686,8 @@ const CnpjProdutos = () => {
   };
 
   const openFormScanner = () => {
+    setBarcodeLookupState('idle');
+    setBarcodeLookupMessage('');
     setScannerTarget('form');
     setScannerOpen(true);
   };
@@ -698,8 +702,12 @@ const CnpjProdutos = () => {
     if (!barcode) return;
 
     setFormData((prev) => ({ ...prev, codigo_barras: barcode }));
+    setBarcodeLookupState('loading');
+    setBarcodeLookupMessage('Buscando produto cadastrado por código de barras...');
 
     if (!canUseUserCompanyData) {
+      setBarcodeLookupState('idle');
+      setBarcodeLookupMessage('Código de barras capturado. Complete os dados manualmente.');
       toast.success('Código de barras capturado');
       return;
     }
@@ -713,6 +721,8 @@ const CnpjProdutos = () => {
       });
 
       if (!result.success || !result.data) {
+        setBarcodeLookupState('not_found');
+        setBarcodeLookupMessage('Código capturado, mas não encontramos cadastro existente. Continue o preenchimento manual.');
         toast.success('Código capturado. Produto não encontrado, siga com o cadastro manual.');
         return;
       }
@@ -722,13 +732,19 @@ const CnpjProdutos = () => {
       );
 
       if (!matched) {
+        setBarcodeLookupState('not_found');
+        setBarcodeLookupMessage('Código capturado, mas não encontramos cadastro existente. Continue o preenchimento manual.');
         toast.success('Código capturado. Produto não encontrado, siga com o cadastro manual.');
         return;
       }
 
       handleEdit(matched);
+      setBarcodeLookupState('found');
+      setBarcodeLookupMessage('Produto encontrado. Dados preenchidos automaticamente para edição.');
       toast.success('Produto encontrado. Dados preenchidos automaticamente.');
     } catch {
+      setBarcodeLookupState('error');
+      setBarcodeLookupMessage('Não foi possível validar o código agora. Continue o preenchimento manual.');
       toast.success('Código capturado. Siga com o cadastro manual.');
     }
   };
@@ -780,13 +796,24 @@ const CnpjProdutos = () => {
                 <Input
                   id="codigo_barras"
                   value={formData.codigo_barras || ''}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, codigo_barras: e.target.value.replace(/\s+/g, '') }))}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, codigo_barras: e.target.value.replace(/\s+/g, '') }));
+                    if (barcodeLookupState !== 'idle' || barcodeLookupMessage) {
+                      setBarcodeLookupState('idle');
+                      setBarcodeLookupMessage('');
+                    }
+                  }}
                   placeholder="Ex: 7891234567890"
                 />
+                {barcodeLookupMessage && (
+                  <p className={`text-xs ${barcodeLookupState === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {barcodeLookupMessage}
+                  </p>
+                )}
               </div>
-              <Button type="button" variant="outline" className="w-full md:w-auto" onClick={openFormScanner}>
-                <ScanLine className="h-4 w-4" />
-                Escanear
+              <Button type="button" variant="outline" className="w-full md:w-auto" onClick={openFormScanner} disabled={barcodeLookupState === 'loading'}>
+                {barcodeLookupState === 'loading' ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+                {barcodeLookupState === 'loading' ? 'Buscando...' : 'Escanear'}
               </Button>
             </div>
 
