@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -20,7 +18,6 @@ const uniqueTags = (tags: string[]) => Array.from(new Set(tags.map((tag) => tag.
 
 const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', suggestedTags = [], onChange }) => {
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const [showTagCloud, setShowTagCloud] = useState(false);
 
   useEffect(() => {
@@ -47,13 +44,6 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
 
   const removeTag = (tag: string) => {
     syncTags(tags.filter((item) => item.toLowerCase() !== tag.toLowerCase()));
-  };
-
-  const handleAddFromInput = () => {
-    if (!tagInput.trim()) return;
-    const parsed = normalizeTags(tagInput);
-    syncTags([...tags, ...parsed]);
-    setTagInput('');
   };
 
   return (
