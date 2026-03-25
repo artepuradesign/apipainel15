@@ -69,20 +69,6 @@ const ProductTagSelector: React.FC<ProductTagSelectorProps> = ({ value = '', sug
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Input
-          id="new-tag-product_tag"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          placeholder="Adicionar nova tag"
-        />
-        <Button type="button" variant="outline" onClick={handleAddFromInput} disabled={!tagInput.trim()}>
-          Adicionar
-        </Button>
-      </div>
-
-      <p className="text-xs text-muted-foreground">Separar as tags com vírgulas</p>
-
       <ul className="flex flex-wrap gap-2" role="list" aria-label="Tags selecionadas">
         {tags.map((tag) => (
           <li key={tag}>
