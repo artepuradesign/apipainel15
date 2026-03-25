@@ -191,10 +191,62 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- =========================================================
 
 INSERT INTO cnpj_product_categories (module_id, user_id, nome, slug)
-SELECT 183, NULL, 'Sem categoria', 'sem-categoria'
-WHERE NOT EXISTS (
-  SELECT 1 FROM cnpj_product_categories WHERE module_id = 183 AND user_id IS NULL AND nome = 'Sem categoria'
-);
+SELECT 183, NULL, seed.nome, seed.slug
+FROM (
+  SELECT 'Sem categoria' AS nome, 'sem-categoria' AS slug
+  UNION ALL SELECT 'Alimentos e Bebidas', 'alimentos-e-bebidas'
+  UNION ALL SELECT 'Alimentos Naturais', 'alimentos-naturais'
+  UNION ALL SELECT 'Artigos para Festas', 'artigos-para-festas'
+  UNION ALL SELECT 'Artesanato', 'artesanato'
+  UNION ALL SELECT 'Automotivo', 'automotivo'
+  UNION ALL SELECT 'Bebidas', 'bebidas'
+  UNION ALL SELECT 'Beleza e Cosméticos', 'beleza-e-cosmeticos'
+  UNION ALL SELECT 'Brinquedos', 'brinquedos'
+  UNION ALL SELECT 'Calçados', 'calcados'
+  UNION ALL SELECT 'Casa e Decoração', 'casa-e-decoracao'
+  UNION ALL SELECT 'Celulares e Acessórios', 'celulares-e-acessorios'
+  UNION ALL SELECT 'Climatização', 'climatizacao'
+  UNION ALL SELECT 'Construção', 'construcao'
+  UNION ALL SELECT 'Cozinha e Utilidades', 'cozinha-e-utilidades'
+  UNION ALL SELECT 'Eletrodomésticos', 'eletrodomesticos'
+  UNION ALL SELECT 'Eletrônicos', 'eletronicos'
+  UNION ALL SELECT 'Embalagens', 'embalagens'
+  UNION ALL SELECT 'Escritório', 'escritorio'
+  UNION ALL SELECT 'Esportes', 'esportes'
+  UNION ALL SELECT 'Ferramentas', 'ferramentas'
+  UNION ALL SELECT 'Floricultura', 'floricultura'
+  UNION ALL SELECT 'Games', 'games'
+  UNION ALL SELECT 'Higiene e Limpeza', 'higiene-e-limpeza'
+  UNION ALL SELECT 'Informática', 'informatica'
+  UNION ALL SELECT 'Instrumentos Musicais', 'instrumentos-musicais'
+  UNION ALL SELECT 'Joias e Acessórios', 'joias-e-acessorios'
+  UNION ALL SELECT 'Livros e Papelaria', 'livros-e-papelaria'
+  UNION ALL SELECT 'Malas e Mochilas', 'malas-e-mochilas'
+  UNION ALL SELECT 'Materiais Elétricos', 'materiais-eletricos'
+  UNION ALL SELECT 'Materiais Hidráulicos', 'materiais-hidraulicos'
+  UNION ALL SELECT 'Móveis', 'moveis'
+  UNION ALL SELECT 'Moda Feminina', 'moda-feminina'
+  UNION ALL SELECT 'Moda Infantil', 'moda-infantil'
+  UNION ALL SELECT 'Moda Masculina', 'moda-masculina'
+  UNION ALL SELECT 'Ótica', 'otica'
+  UNION ALL SELECT 'Papelaria', 'papelaria'
+  UNION ALL SELECT 'Perfumaria', 'perfumaria'
+  UNION ALL SELECT 'Pet Shop', 'pet-shop'
+  UNION ALL SELECT 'Produtos Digitais', 'produtos-digitais'
+  UNION ALL SELECT 'Saúde', 'saude'
+  UNION ALL SELECT 'Saúde e Bem-estar', 'saude-e-bem-estar'
+  UNION ALL SELECT 'Segurança', 'seguranca'
+  UNION ALL SELECT 'Serviços', 'servicos'
+  UNION ALL SELECT 'Suplementos', 'suplementos'
+  UNION ALL SELECT 'Telefonia', 'telefonia'
+  UNION ALL SELECT 'Turismo', 'turismo'
+  UNION ALL SELECT 'Vestuário', 'vestuario'
+) AS seed
+LEFT JOIN cnpj_product_categories existing
+  ON existing.module_id = 183
+  AND existing.user_id IS NULL
+  AND existing.nome = seed.nome
+WHERE existing.id IS NULL;
 
 INSERT INTO cnpj_product_brands (module_id, user_id, nome, slug)
 SELECT 183, NULL, 'Sem marca', 'sem-marca'
