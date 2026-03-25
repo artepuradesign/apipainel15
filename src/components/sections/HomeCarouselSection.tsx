@@ -38,8 +38,8 @@ const homeCarouselContent: Record<Locale, HomeCarouselContent> = {
     goToSlide: 'Ir para slide',
     slides: [
       {
-        title: 'Gerencie seu negócio de maneira fácil e rápida',
-        subtitle: 'Cadastre produtos e tenha controle de estoque da sua empresa',
+        title: 'Gerencie Produtos e Estoque',
+        subtitle: 'Cadastre produtos, gerencie o estoque da sua empresa',
         description: 'Organize seu catálogo, acompanhe entradas e saídas e mantenha a operação mais simples no dia a dia.',
         image: slide02,
       },
@@ -329,7 +329,7 @@ const HomeCarouselSection: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.5 }}
-                  className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.1]"
+                  className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight text-white leading-[1.1]"
                 >
                   {slides[active].title}
                 </motion.h1>
