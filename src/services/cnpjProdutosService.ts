@@ -43,6 +43,22 @@ export interface CnpjProdutoSections {
   tags: string[];
 }
 
+export interface BarcodeLookupData {
+  found: boolean;
+  codigo_barras: string;
+  nome_produto?: string | null;
+  marca?: string | null;
+  categoria?: string | null;
+  tags?: string | null;
+  ncm?: string | null;
+  external_featured_image_url?: string | null;
+  fotos?: string[];
+  fontes?: {
+    openfoodfacts?: Record<string, any>;
+    cosmos?: Record<string, any>;
+  };
+}
+
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   try {
     await fetchApiConfig();
@@ -157,5 +173,11 @@ export const cnpjProdutosService = {
       method: 'POST',
       body: formData,
     });
+  },
+
+  async consultarCodigoBarras(codigoBarras: string) {
+    const barcode = codigoBarras.replace(/\s+/g, '').trim();
+    const endpoint = `/cnpj-produtos/consultar-codigo?codigo_barras=${encodeURIComponent(barcode)}`;
+    return apiRequest<BarcodeLookupData>(endpoint);
   },
 };

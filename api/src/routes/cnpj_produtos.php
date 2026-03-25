@@ -20,7 +20,9 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 switch ($method) {
     case 'GET':
-        if (strpos($path, '/cnpj-produtos/list') !== false || $path === '/cnpj-produtos') {
+        if (strpos($path, '/cnpj-produtos/consultar-codigo') !== false) {
+            $controller->consultarCodigoBarras();
+        } elseif (strpos($path, '/cnpj-produtos/list') !== false || $path === '/cnpj-produtos') {
             $controller->listProdutos();
         } else {
             Response::notFound('Endpoint não encontrado');
