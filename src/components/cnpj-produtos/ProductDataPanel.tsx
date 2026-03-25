@@ -18,6 +18,19 @@ type ProductAttribute = {
   variation: boolean;
 };
 
+type ProductDataValues = {
+  sku: string;
+  codigo_barras: string;
+  preco: number;
+  estoque: number;
+  controlar_estoque: boolean;
+};
+
+type ProductDataPanelProps = {
+  value: ProductDataValues;
+  onChange: (next: Partial<ProductDataValues>) => void;
+};
+
 const tabs: { id: ProductDataTab; label: string }[] = [
   { id: 'geral', label: 'Geral' },
   { id: 'estoque', label: 'Estoque' },
@@ -27,12 +40,11 @@ const tabs: { id: ProductDataTab; label: string }[] = [
   { id: 'avancado', label: 'Avançado' },
 ];
 
-export default function ProductDataPanel() {
+export default function ProductDataPanel({ value, onChange }: ProductDataPanelProps) {
   const [productType, setProductType] = useState<ProductType>('simple');
   const [activeTab, setActiveTab] = useState<ProductDataTab>('geral');
   const [isVirtual, setIsVirtual] = useState(false);
   const [isDownloadable, setIsDownloadable] = useState(false);
-  const [manageStock, setManageStock] = useState(false);
   const [backordersMode, setBackordersMode] = useState<BackordersMode>('no');
   const [stockStatus, setStockStatus] = useState<StockStatus>('instock');
   const [soldIndividually, setSoldIndividually] = useState(false);
@@ -107,7 +119,25 @@ export default function ProductDataPanel() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="regular_price">Preço (R$)</Label>
-              <Input id="regular_price" placeholder="0,00" />
+                <Input
+                  id="regular_price"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={value.preco}
+                  onChange={(event) => {
+                    const normalizedValue = event.target.value.replace(',', '.').trim();
+                    if (!normalizedValue) {
+                      onChange({ preco: 0 });
+                      return;
+                    }
+                    const parsedPrice = Number(normalizedValue);
+                    if (Number.isFinite(parsedPrice) && parsedPrice >= 0) {
+                      onChange({ preco: parsedPrice });
+                    }
+                  }}
+                  placeholder="0,00"
+                />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sale_price">Preço promocional (R$)</Label>
@@ -129,11 +159,21 @@ export default function ProductDataPanel() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="inventory_sku">SKU</Label>
-                <Input id="inventory_sku" placeholder="Código interno" />
+                <Input
+                  id="inventory_sku"
+                  value={value.sku}
+                  onChange={(event) => onChange({ sku: event.target.value })}
+                  placeholder="Código interno"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="global_unique_id">GTIN, UPC, EAN ou ISBN</Label>
-                <Input id="global_unique_id" placeholder="Código de barras / identificador" />
+                <Input
+                  id="global_unique_id"
+                  value={value.codigo_barras}
+                  onChange={(event) => onChange({ codigo_barras: event.target.value.replace(/\s+/g, '') })}
+                  placeholder="Código de barras / identificador"
+                />
                 <p className="text-xs text-muted-foreground">Insira um identificador exclusivo para este produto.</p>
               </div>
             </div>
@@ -148,19 +188,36 @@ export default function ProductDataPanel() {
               <label className="inline-flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
-                  checked={manageStock}
-                  onChange={(event) => setManageStock(event.target.checked)}
+                  checked={value.controlar_estoque}
+                  onChange={(event) => onChange({ controlar_estoque: event.target.checked })}
                   className="h-4 w-4 rounded border-input"
                 />
                 Gestão de estoque
               </label>
               <p className="text-xs text-muted-foreground">Acompanhe a quantidade de estoque para este produto.</p>
 
-              {manageStock && (
+              {value.controlar_estoque && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="stock_qty">Quantidade</Label>
-                    <Input id="stock_qty" type="number" min={0} placeholder="1" />
+                    <Input
+                      id="stock_qty"
+                      type="number"
+                      min={0}
+                      value={value.estoque}
+                      onChange={(event) => {
+                        const normalizedValue = event.target.value.trim();
+                        if (!normalizedValue) {
+                          onChange({ estoque: 0 });
+                          return;
+                        }
+                        const parsedStock = Number.parseInt(normalizedValue, 10);
+                        if (Number.isFinite(parsedStock) && parsedStock >= 0) {
+                          onChange({ estoque: parsedStock });
+                        }
+                      }}
+                      placeholder="1"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="low_stock">Limiar de estoque baixo</Label>
@@ -169,7 +226,7 @@ export default function ProductDataPanel() {
                 </div>
               )}
 
-              {manageStock && (
+              {value.controlar_estoque && (
                 <fieldset className="space-y-2">
                   <legend className="text-sm font-medium">Permitir encomendas?</legend>
                   <div className="space-y-1">

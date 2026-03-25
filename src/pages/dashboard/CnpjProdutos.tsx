@@ -830,7 +830,21 @@ const CnpjProdutos = () => {
               disabled={saving || uploadingPhotos}
             />
 
-            <ProductDataPanel />
+            <ProductDataPanel
+              value={{
+                sku: formData.sku || '',
+                codigo_barras: formData.codigo_barras || '',
+                preco: formData.preco,
+                estoque: formData.estoque,
+                controlar_estoque: formData.controlar_estoque,
+              }}
+              onChange={(next) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  ...next,
+                }))
+              }
+            />
 
             <div className="flex items-end gap-2">
               <Button onClick={handleSave} disabled={saving || uploadingPhotos} className="w-full md:w-auto">
